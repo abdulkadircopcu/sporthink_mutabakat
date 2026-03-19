@@ -22,9 +22,9 @@ CREATE TABLE orders (
     status                  ENUM('teslim_edildi','iade','iptal','beklemede') NOT NULL DEFAULT 'beklemede',
     barcode                 VARCHAR(100)    NOT NULL COMMENT 'Ürün barkodu / SKU',
     quantity                SMALLINT        NOT NULL DEFAULT 1,
-    unit_price              DECIMAL(12,2)   NOT NULL COMMENT 'Pazaryeri satış fiyatı (KDV dahil)',
+    unit_price              DECIMAL(20,8)   NOT NULL COMMENT 'Pazaryeri satış fiyatı (KDV dahil)',
     kdv_rate                DECIMAL(5,2)    NOT NULL DEFAULT 20.00 COMMENT 'KDV oranı %',
-    total_amount            DECIMAL(12,2)   NOT NULL COMMENT 'Sipariş toplam tutarı',
+    total_amount            DECIMAL(20,8)   NOT NULL COMMENT 'Sipariş toplam tutarı',
     order_created_at        DATETIME        NOT NULL COMMENT 'Siparişin oluşma zamanı',
     cargo_sent_at           DATETIME        NULL     COMMENT 'Kargo gönderim tarihi',
     source_store            VARCHAR(100)    NULL     COMMENT 'Kaynak mağaza / kanal',
@@ -50,27 +50,27 @@ CREATE TABLE order_items (
     barcode                     VARCHAR(100)    NOT NULL,
     product_name                VARCHAR(255)    NULL,
     quantity                    SMALLINT        NOT NULL DEFAULT 1,
-    unit_price                  DECIMAL(12,2)   NOT NULL COMMENT 'Pazaryeri birim fiyatı',
-    product_cost                DECIMAL(12,2)   NOT NULL COMMENT 'Ürün maliyeti (ERP''den)',
+    unit_price                  DECIMAL(20,8)   NOT NULL COMMENT 'Pazaryeri birim fiyatı',
+    product_cost                DECIMAL(20,8)   NOT NULL COMMENT 'Ürün maliyeti (ERP''den)',
     sale_quantity               SMALLINT        NOT NULL DEFAULT 0,
-    sale_amount                 DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
+    sale_amount                 DECIMAL(20,8)   NOT NULL DEFAULT 0.00,
     return_quantity             SMALLINT        NOT NULL DEFAULT 0,
-    return_amount               DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
+    return_amount               DECIMAL(20,8)   NOT NULL DEFAULT 0.00,
 
     -- Desi (hacimsel ağırlık)
     estimated_desi              DECIMAL(8,3)    NULL,
     billed_desi                 DECIMAL(8,3)    NULL,
-    calculated_desi_amount      DECIMAL(12,2)   NULL,
+    calculated_desi_amount      DECIMAL(20,8)   NULL,
 
     -- Hesaplanan kesintiler (dağıtılmış)
-    calc_sale_commission        DECIMAL(12,2)   NULL COMMENT 'Hesaplanan satış komisyonu',
-    calc_return_commission      DECIMAL(12,2)   NULL COMMENT 'Hesaplanan iade komisyonu',
-    calc_cargo_amount           DECIMAL(12,2)   NULL COMMENT 'Hesaplanan kargo tutarı',
+    calc_sale_commission        DECIMAL(20,8)   NULL COMMENT 'Hesaplanan satış komisyonu',
+    calc_return_commission      DECIMAL(20,8)   NULL COMMENT 'Hesaplanan iade komisyonu',
+    calc_cargo_amount           DECIMAL(20,8)   NULL COMMENT 'Hesaplanan kargo tutarı',
 
     -- Net hesaplamalar
-    net_revenue                 DECIMAL(12,2)   NULL COMMENT 'Net gelir',
-    net_profit                  DECIMAL(12,2)   NULL COMMENT 'Net kâr',
-    profit_margin               DECIMAL(8,4)    NULL COMMENT 'Kâr marjı (0-1 arası)',
+    net_revenue                 DECIMAL(20,8)   NULL COMMENT 'Net gelir',
+    net_profit                  DECIMAL(20,8)   NULL COMMENT 'Net kâr',
+    profit_margin               DECIMAL(20,8)    NULL COMMENT 'Kâr marjı (0-1 arası)',
 
     created_at                  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at                  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -92,7 +92,7 @@ CREATE TABLE marketplace_invoices (
     invoice_no          VARCHAR(100)    NULL,
     invoice_date        DATE            NOT NULL,
     item_type           VARCHAR(100)    NOT NULL COMMENT 'Kalem tipi (komisyon, kargo, ceza vb.)',
-    amount              DECIMAL(12,2)   NOT NULL COMMENT 'Pozitif = gelir, negatif = gider',
+    amount              DECIMAL(20,8)   NOT NULL COMMENT 'Pozitif = gelir, negatif = gider',
     direction           ENUM('gelir','gider') NOT NULL COMMENT 'Gelir mi gider mi',
     description         VARCHAR(500)    NULL,
     raw_data            JSON            NULL     COMMENT 'Ham CSV/Excel satırı (yedek)',
@@ -116,22 +116,22 @@ CREATE TABLE order_financials (
     marketplace             ENUM('Trendyol','Hepsiburada','Flo','N11','Pazarama','LCW','Amazon') NOT NULL,
 
     -- Beklenen ödemeler (hesaplanan)
-    expected_payment        DECIMAL(12,2)   NULL COMMENT 'Beklenen net ödeme',
-    expected_commission     DECIMAL(12,2)   NULL,
-    expected_cargo          DECIMAL(12,2)   NULL,
-    expected_stopaj         DECIMAL(12,2)   NULL,
+    expected_payment        DECIMAL(20,8)   NULL COMMENT 'Beklenen net ödeme',
+    expected_commission     DECIMAL(20,8)   NULL,
+    expected_cargo          DECIMAL(20,8)   NULL,
+    expected_stopaj         DECIMAL(20,8)   NULL,
 
     -- Gerçekleşen ödemeler (faturadan gelen)
-    actual_payment          DECIMAL(12,2)   NULL COMMENT 'Gerçekleşen ödeme',
-    billed_commission       DECIMAL(12,2)   NULL,
-    billed_cargo_sale       DECIMAL(12,2)   NULL,
-    billed_cargo_return     DECIMAL(12,2)   NULL,
-    billed_stopaj           DECIMAL(12,2)   NULL,
+    actual_payment          DECIMAL(20,8)   NULL COMMENT 'Gerçekleşen ödeme',
+    billed_commission       DECIMAL(20,8)   NULL,
+    billed_cargo_sale       DECIMAL(20,8)   NULL,
+    billed_cargo_return     DECIMAL(20,8)   NULL,
+    billed_stopaj           DECIMAL(20,8)   NULL,
 
     -- Fark analizi
-    payment_diff            DECIMAL(12,2)   NULL COMMENT 'Beklenen - gerçekleşen fark',
-    commission_diff         DECIMAL(12,2)   NULL,
-    cargo_diff              DECIMAL(12,2)   NULL,
+    payment_diff            DECIMAL(20,8)   NULL COMMENT 'Beklenen - gerçekleşen fark',
+    commission_diff         DECIMAL(20,8)   NULL,
+    cargo_diff              DECIMAL(20,8)   NULL,
 
     -- Mutabakat durumu
     reconciliation_status   ENUM('eslesdi','fark_var','manuel_inceleme','beklemede') NOT NULL DEFAULT 'beklemede',
@@ -164,42 +164,42 @@ CREATE TABLE profitability_summary (
 
     -- Satış
     sale_quantity                   SMALLINT        NULL,
-    sale_amount                     DECIMAL(12,2)   NULL,
+    sale_amount                     DECIMAL(20,8)   NULL,
     return_quantity                 SMALLINT        NULL,
-    return_amount                   DECIMAL(12,2)   NULL,
+    return_amount                   DECIMAL(20,8)   NULL,
 
     -- Maliyetler
-    product_cost                    DECIMAL(12,2)   NULL,
-    cargo_cost                      DECIMAL(12,2)   NULL,
+    product_cost                    DECIMAL(20,8)   NULL,
+    cargo_cost                      DECIMAL(20,8)   NULL,
 
     -- Pazaryeri kesintileri (gider = negatif, gelir = pozitif)
-    commission_sale                 DECIMAL(12,2)   NULL,
-    commission_return               DECIMAL(12,2)   NULL,
-    cargo_sale                      DECIMAL(12,2)   NULL,
-    cargo_return                    DECIMAL(12,2)   NULL,
-    stopaj                          DECIMAL(12,2)   NULL,
-    stopaj_return                   DECIMAL(12,2)   NULL,
-    penalty_supply                  DECIMAL(12,2)   NULL COMMENT 'Tedarik edememe',
-    penalty_delay                   DECIMAL(12,2)   NULL COMMENT 'Gecikme cezası',
-    penalty_wrong_item              DECIMAL(12,2)   NULL COMMENT 'Yanlış ürün',
-    penalty_defective               DECIMAL(12,2)   NULL COMMENT 'Kusurlu ürün',
-    penalty_missing                 DECIMAL(12,2)   NULL COMMENT 'Eksik ürün',
-    discount_coupon                 DECIMAL(12,2)   NULL,
-    discount_campaign               DECIMAL(12,2)   NULL,
-    marketing_fee                   DECIMAL(12,2)   NULL,
-    platform_fee                    DECIMAL(12,2)   NULL,
-    ad_spend                        DECIMAL(12,2)   NULL,
-    other_deductions                DECIMAL(12,2)   NULL,
+    commission_sale                 DECIMAL(20,8)   NULL,
+    commission_return               DECIMAL(20,8)   NULL,
+    cargo_sale                      DECIMAL(20,8)   NULL,
+    cargo_return                    DECIMAL(20,8)   NULL,
+    stopaj                          DECIMAL(20,8)   NULL,
+    stopaj_return                   DECIMAL(20,8)   NULL,
+    penalty_supply                  DECIMAL(20,8)   NULL COMMENT 'Tedarik edememe',
+    penalty_delay                   DECIMAL(20,8)   NULL COMMENT 'Gecikme cezası',
+    penalty_wrong_item              DECIMAL(20,8)   NULL COMMENT 'Yanlış ürün',
+    penalty_defective               DECIMAL(20,8)   NULL COMMENT 'Kusurlu ürün',
+    penalty_missing                 DECIMAL(20,8)   NULL COMMENT 'Eksik ürün',
+    discount_coupon                 DECIMAL(20,8)   NULL,
+    discount_campaign               DECIMAL(20,8)   NULL,
+    marketing_fee                   DECIMAL(20,8)   NULL,
+    platform_fee                    DECIMAL(20,8)   NULL,
+    ad_spend                        DECIMAL(20,8)   NULL,
+    other_deductions                DECIMAL(20,8)   NULL,
 
     -- Net hesaplamalar
-    net_revenue                     DECIMAL(12,2)   NULL COMMENT 'Net gelir',
-    net_profit                      DECIMAL(12,2)   NULL COMMENT 'Net kâr',
-    profit_margin                   DECIMAL(8,4)    NULL COMMENT 'Kâr marjı',
+    net_revenue                     DECIMAL(20,8)   NULL COMMENT 'Net gelir',
+    net_profit                      DECIMAL(20,8)   NULL COMMENT 'Net kâr',
+    profit_margin                   DECIMAL(20,8)    NULL COMMENT 'Kâr marjı',
     is_loss                         TINYINT(1)      NOT NULL DEFAULT 0 COMMENT '1 = zarar eden sipariş',
 
     -- Mutabakat
     reconciliation_status           ENUM('eslesdi','fark_var','manuel_inceleme','beklemede') NULL,
-    payment_diff                    DECIMAL(12,2)   NULL,
+    payment_diff                    DECIMAL(20,8)   NULL,
 
     -- ETL meta
     last_calculated_at              DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
