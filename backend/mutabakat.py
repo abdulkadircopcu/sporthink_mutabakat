@@ -39,7 +39,7 @@ def get_db_connection():
         host="localhost",
         user="root",
         password="",          # WAMP varsayılan şifresi boş
-        database="eticaret_mutabakat",
+        database="sporthink_mutabakat",
         charset="utf8mb4"
     )
 
@@ -268,7 +268,7 @@ def siparis_mutabakat_yap(marketplace_order_id: str, marketplace: str) -> dict:
         "durum": "fark_var",
         "alert": "kritik",
         "net_fark": -23.20,
-        "mesaj": "⚠️ DİKKAT: Pazaryeri eksik ödedi! Fark: -23.20₺"
+        "mesaj": "[DIKKAT] Pazaryeri eksik odedi! Fark: -23.20 TL"
     }
     """
 
@@ -286,7 +286,7 @@ def siparis_mutabakat_yap(marketplace_order_id: str, marketplace: str) -> dict:
                 "durum": ReconciliationStatus.MANUEL_INCELEME.value,
                 "alert": AlertLevel.KRITIK.value,
                 "net_fark": None,
-                "mesaj": f"🔴 Sipariş bulunamadı: {marketplace_order_id} — Manuel inceleme gerekli"
+                "mesaj": f"[KRITIK] Siparis bulunamadi: {marketplace_order_id} - Manuel inceleme gerekli"
             }
 
         order_id = siparis["id"]
@@ -308,11 +308,11 @@ def siparis_mutabakat_yap(marketplace_order_id: str, marketplace: str) -> dict:
 
         # Adım 6: Mesajı oluştur
         if alert == AlertLevel.NORMAL:
-            mesaj = f"✅ Mutabakat tamam: {marketplace_order_id}"
+            mesaj = f"[OK] Mutabakat tamam: {marketplace_order_id}"
         elif alert == AlertLevel.DUSUK:
-            mesaj = f"🟡 Bilgi: Pazaryeri fazla ödedi. Fark: +{net_fark}₺ — {marketplace_order_id}"
+            mesaj = f"[BILGI] Pazaryeri fazla odedi. Fark: +{net_fark} TL - {marketplace_order_id}"
         else:  # KRITIK
-            mesaj = f"🔴 DİKKAT: Pazaryeri eksik ödedi! Fark: {net_fark}₺ — {marketplace_order_id}"
+            mesaj = f"[DIKKAT] Pazaryeri eksik odedi! Fark: {net_fark} TL - {marketplace_order_id}"
 
         return {
             "order_id": order_id,
@@ -400,9 +400,9 @@ def toplu_mutabakat_yap(marketplace: str = None) -> dict:
         elif sonuc["durum"] == ReconciliationStatus.FARK_VAR.value:
             ozet["fark_var"] += 1
             if sonuc["alert"] == AlertLevel.KRITIK.value:
-                ozet["kritik_uyarilar"].append(sonuc)   # 🔴 Biz zarar ettik
+                ozet["kritik_uyarilar"].append(sonuc)   # [KRITIK] Biz zarar ettik
             else:
-                ozet["dusuk_uyarilar"].append(sonuc)    # 🟡 Bizim lehimize
+                ozet["dusuk_uyarilar"].append(sonuc)    # [BILGI] Bizim lehimize
         elif sonuc["durum"] == ReconciliationStatus.MANUEL_INCELEME.value:
             ozet["manuel_inceleme"] += 1
             ozet["kritik_uyarilar"].append(sonuc)       # Manuel de kritik sayılır
@@ -412,15 +412,15 @@ def toplu_mutabakat_yap(marketplace: str = None) -> dict:
     print(f"  MUTABAKAT RAPORU — {datetime.now().strftime('%d.%m.%Y %H:%M')}")
     print("="*60)
     print(f"  Toplam sipariş    : {ozet['toplam']}")
-    print(f"  ✅ Eşleşti         : {ozet['eslesdi']}")
-    print(f"  ⚠️  Fark var        : {ozet['fark_var']}")
-    print(f"  🔴 Manuel inceleme : {ozet['manuel_inceleme']}")
-    print(f"  🔴 Kritik uyarı    : {len(ozet['kritik_uyarilar'])}")
-    print(f"  🟡 Düşük uyarı     : {len(ozet['dusuk_uyarilar'])}")
+    print(f"  [OK]     Eslesti         : {ozet['eslesdi']}")
+    print(f"  [FARK]   Fark var        : {ozet['fark_var']}")
+    print(f"  [MANUEL] Manuel inceleme : {ozet['manuel_inceleme']}")
+    print(f"  [KRITIK] Kritik uyari    : {len(ozet['kritik_uyarilar'])}")
+    print(f"  [BILGI]  Dusuk uyari     : {len(ozet['dusuk_uyarilar'])}")
     print("="*60 + "\n")
 
     if ozet["kritik_uyarilar"]:
-        print("🔴 KRİTİK UYARILAR (Zarar Eden / Eşleşmeyen Siparişler):")
+        print("[KRITIK] KRITIK UYARILAR (Zarar Eden / Eslesmeyenler):")
         for u in ozet["kritik_uyarilar"]:
             print(f"   {u['mesaj']}")
         print()

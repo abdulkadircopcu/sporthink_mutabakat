@@ -1,0 +1,154 @@
+import json
+import sys
+import os
+from datetime import datetime
+from flask import Blueprint, request, jsonify
+import mysql.connector
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+analiz_bp = Blueprint("analiz", __name__)
+
+DB_CONFIG = {
+    "host": "localhost", "user": "root",
+    "password": "", "database": "sporthink_mutabakat", "charset": "utf8mb4"
+}
+
+def get_conn():
+    return mysql.connector.connect(**DB_CONFIG)
+
+
+# ── Karlılık Özeti Kartları ──
+@analiz_bp.route("/karlilik/ozet", methods=["GET"])
+def karlilik_ozet():
+    pazaryeri = request.args.get("pazaryeri")
+    baslangic = request.args.get("baslangic")
+    bitis     = request.args.get("bitis")
+
+    where  = ["1=1"]
+    params = []
+    if pazaryeri:
+        where.append("pazaryeri = %s"); params.append(pazaryeri)
+    if baslangic:
+        where.append("siparis_tarihi >= %s"); params.append(baslangic)
+    if bitis:
+        where.append("siparis_tarihi <= %s"); params.append(bitis)
+
+    sql = f"""
+        SELECT
+            COUNT(*)                              AS toplam_siparis,
+            COALESCE(SUM(satis_tutari), 0)        AS toplam_ciro,
+            COALESCE(SUM(net_kar), 0)             AS toplam_kar,
+            COALESCE(AVG(kar_marji), 0)           AS ort_kar_marji,
+            SUM(CASE WHEN zarar_mi=1 THEN 1 ELSE 0 END) AS zarar_siparis,
+            SUM(CASE WHEN net_kar>0  THEN 1 ELSE 0 END) AS karli_siparis
+        FROM karlilik_ozeti
+        WHERE {" AND ".join(where)}
+    """
+    conn = get_conn()
+    cur  = conn.cursor(dictionary=True)
+    cur.execute(sql, params)
+    row = cur.fetchone()
+    cur.close(); conn.close()
+
+    # Decimal → float çevir
+    for k, v in row.items():
+        if v is not None:
+            try: row[k] = float(v)
+            except: pass
+    return jsonify(row)
+
+
+# ── Karlılık Listesi ──
+@analiz_bp.route("/karlilik/liste", methods=["GET"])
+def karlilik_liste():
+    pazaryeri = request.args.get("pazaryeri")
+    baslangic = request.args.get("baslangic")
+    bitis     = request.args.get("bitis")
+    durum     = request.args.get("durum")       # zarar / karli / hepsi
+    sayfa     = int(request.args.get("sayfa", 1))
+    limit     = int(request.args.get("limit", 50))
+    offset    = (sayfa - 1) * limit
+
+    where  = ["1=1"]
+    params = []
+    if pazaryeri:
+        where.append("pazaryeri = %s"); params.append(pazaryeri)
+    if baslangic:
+        where.append("siparis_tarihi >= %s"); params.append(baslangic)
+    if bitis:
+        where.append("siparis_tarihi <= %s"); params.append(bitis)
+    if durum == "zarar":
+        where.append("zarar_mi = 1")
+    elif durum == "karli":
+        where.append("zarar_mi = 0 AND net_kar > 0")
+
+    w = " AND ".join(where)
+
+    count_sql = f"SELECT COUNT(*) FROM karlilik_ozeti WHERE {w}"
+    data_sql  = f"""
+        SELECT
+            siparis_no, pazaryeri_siparis_no, pazaryeri, siparis_durumu,
+            DATE_FORMAT(siparis_tarihi,'%d.%m.%Y') AS siparis_tarihi,
+            barkod, urun_adi, satis_adeti,
+            COALESCE(satis_tutari,0)                AS satis_tutari,
+            COALESCE(urun_maliyeti,0)               AS urun_maliyeti,
+            COALESCE(faturalanan_komisyon_tutari,0) AS komisyon,
+            COALESCE(satis_kargosu,0)               AS kargo,
+            COALESCE(net_gelir,0)                   AS net_gelir,
+            COALESCE(net_kar,0)                     AS net_kar,
+            COALESCE(kar_marji,0)                   AS kar_marji,
+            zarar_mi, mutabakat_durumu
+        FROM karlilik_ozeti
+        WHERE {w}
+        ORDER BY siparis_tarihi DESC
+        LIMIT %s OFFSET %s
+    """
+    conn = get_conn()
+    cur  = conn.cursor(dictionary=True)
+
+    cur.execute(count_sql, params)
+    toplam = cur.fetchone()["COUNT(*)"]
+
+    cur.execute(data_sql, params + [limit, offset])
+    rows = cur.fetchall()
+    cur.close(); conn.close()
+
+    # Decimal → float
+    for row in rows:
+        for k, v in row.items():
+            if v is not None:
+                try: row[k] = float(v)
+                except: pass
+
+    return jsonify({
+        "toplam": toplam,
+        "sayfa": sayfa,
+        "limit": limit,
+        "veriler": rows
+    })
+
+
+# ── Mutabakat Özeti ──
+@analiz_bp.route("/mutabakat/ozet", methods=["GET"])
+def mutabakat_ozet():
+    conn = get_conn()
+    cur  = conn.cursor(dictionary=True)
+    cur.execute("""
+        SELECT
+            mutabakat_durumu,
+            pazaryeri,
+            COUNT(*) AS adet,
+            COALESCE(SUM(odeme_farki), 0) AS toplam_fark
+        FROM mutabakat
+        GROUP BY mutabakat_durumu, pazaryeri
+        ORDER BY pazaryeri, mutabakat_durumu
+    """)
+    rows = cur.fetchall()
+    cur.close(); conn.close()
+    for row in rows:
+        for k, v in row.items():
+            if v is not None:
+                try: row[k] = float(v)
+                except: pass
+    return jsonify(rows)

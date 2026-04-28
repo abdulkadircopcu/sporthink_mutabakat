@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Karlilik Analizi | Sporthink Mutabakat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <div>
+          <div class="logo-title">Sporthink Mutabakat</div>
+          <div class="logo-sub">E-Ticaret Analiz Platformu</div>
+        </div>
+      </div>
+      <nav id="mainNav" class="main-nav"></nav>
+    </div>
+  </header>
+
+  <main class="page-main">
+
+    <!-- Filtreler -->
+    <div class="filter-bar card">
+      <div class="filter-group">
+        <label class="filter-label">Pazaryeri</label>
+        <select id="filterPazaryeri" class="filter-select">
+          <option value="">Tümü</option>
+          <option value="Trendyol">Trendyol</option>
+          <option value="Hepsiburada">Hepsiburada</option>
+          <option value="Amazon">Amazon</option>
+          <option value="N11">N11</option>
+          <option value="Pazarama">Pazarama</option>
+          <option value="Flo">Flo</option>
+          <option value="LCW">LCW</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Baslangic</label>
+        <input type="date" id="filterBaslangic" class="filter-input"/>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Bitis</label>
+        <input type="date" id="filterBitis" class="filter-input"/>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Durum</label>
+        <select id="filterDurum" class="filter-select">
+          <option value="">Tümü</option>
+          <option value="karli">Karli</option>
+          <option value="zarar">Zarar</option>
+        </select>
+      </div>
+      <button id="filterBtn" class="filter-btn">Filtrele</button>
+    </div>
+
+    <!-- Özet Kartları -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-icon">🛒</div>
+        <div class="stat-label">Toplam Siparis</div>
+        <div class="stat-value" id="statSiparis">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">💰</div>
+        <div class="stat-label">Toplam Ciro</div>
+        <div class="stat-value" id="statCiro">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📈</div>
+        <div class="stat-label">Net Kar</div>
+        <div class="stat-value" id="statKar">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">%</div>
+        <div class="stat-label">Ort. Kar Marji</div>
+        <div class="stat-value" id="statMarj">—</div>
+      </div>
+      <div class="stat-card warn">
+        <div class="stat-icon">⚠</div>
+        <div class="stat-label">Zarar Eden</div>
+        <div class="stat-value" id="statZarar">—</div>
+      </div>
+    </div>
+
+    <!-- Tablo -->
+    <div class="card table-card">
+      <div class="table-header">
+        <h2 class="table-title">Siparis Bazli Karlilik</h2>
+        <span id="tableCount" class="table-count"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="karlilikTable">
+          <thead>
+            <tr>
+              <th>Tarih</th>
+              <th>Pazaryeri</th>
+              <th>Siparis No</th>
+              <th>Urun</th>
+              <th>Adet</th>
+              <th>Ciro</th>
+              <th>Maliyet</th>
+              <th>Komisyon</th>
+              <th>Kargo</th>
+              <th>Net Gelir</th>
+              <th>Net Kar</th>
+              <th>Marj %</th>
+              <th>Durum</th>
+            </tr>
+          </thead>
+          <tbody id="karlilikBody">
+            <tr><td colspan="13" class="table-empty">Veri yükleniyor...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Sayfalama -->
+      <div class="pagination" id="pagination"></div>
+    </div>
+
+  </main>
+
+  <script src="nav.js"></script>
+  <script src="karlilik.js"></script>
+</body>
+</html>

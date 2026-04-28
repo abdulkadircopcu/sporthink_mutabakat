@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E-Ticaret Mutabakat | Veri Yükleme</title>
+  <meta name="description" content="7 farklı pazaryeri Excel verilerini veritabanına aktarın." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <div>
+          <div class="logo-title">Sporthink Mutabakat</div>
+          <div class="logo-sub">E-Ticaret Veri Aktarim Sistemi</div>
+        </div>
+      </div>
+      <nav id="mainNav" class="main-nav"></nav>
+      <div id="apiStatus" class="api-status checking">
+        <span class="status-dot"></span>
+        <span class="status-text">Baglanıyor...</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+
+    <!-- Sol Panel: Yükleme Formu -->
+    <section class="upload-panel">
+
+      <!-- Adım 1: Pazaryeri Seçimi -->
+      <div class="card">
+        <div class="card-header">
+          <span class="step-badge">1</span>
+          <h2>Pazaryeri Seç</h2>
+        </div>
+        <div id="marketplaceGrid" class="marketplace-grid">
+          <!-- JS ile doldurulacak -->
+        </div>
+      </div>
+
+      <!-- Adım 2: Veri Türü Seçimi -->
+      <div class="card" id="dataTypeCard" style="display:none;">
+        <div class="card-header">
+          <span class="step-badge">2</span>
+          <h2>Veri Türü Seç</h2>
+        </div>
+        <div id="dataTypeList" class="data-type-list">
+          <!-- JS ile doldurulacak -->
+        </div>
+      </div>
+
+      <!-- Adım 3: Dosya Yükleme -->
+      <div class="card" id="uploadCard" style="display:none;">
+        <div class="card-header">
+          <span class="step-badge">3</span>
+          <h2>Dosya Yükle</h2>
+        </div>
+
+        <div id="dropZone" class="drop-zone">
+          <input type="file" id="fileInput" accept=".xlsx,.xls" hidden />
+          <div class="drop-icon">📂</div>
+          <p class="drop-title">Excel dosyasını sürükle & bırak</p>
+          <p class="drop-sub">veya tıklayarak seç (.xlsx, .xls)</p>
+          <div id="selectedFile" class="selected-file" style="display:none;"></div>
+        </div>
+
+        <button id="uploadBtn" class="upload-btn" disabled>
+          <span class="btn-icon">⬆</span>
+          <span id="uploadBtnText">Yükle</span>
+        </button>
+
+        <!-- Progress -->
+        <div id="progressWrap" class="progress-wrap" style="display:none;">
+          <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+          <span id="progressText" class="progress-text">Yükleniyor...</span>
+        </div>
+
+        <!-- Sonuç -->
+        <div id="resultBox" class="result-box" style="display:none;"></div>
+      </div>
+
+    </section>
+
+    <!-- Sağ Panel: Log -->
+    <section class="log-panel">
+      <div class="card log-card">
+        <div class="card-header log-header">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="log-icon">📋</span>
+            <h2>Yükleme Geçmişi</h2>
+          </div>
+          <button id="refreshLogsBtn" class="refresh-btn" title="Yenile">↻</button>
+        </div>
+        <div id="logList" class="log-list">
+          <div class="log-empty">Henüz yükleme yapılmadı.</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="nav.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

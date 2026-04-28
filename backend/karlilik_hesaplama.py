@@ -150,7 +150,7 @@ def siparis_karlilik_hesapla(siparis: dict) -> dict:
         "net_kar":     net_kar,
         "kar_marji":   kar_marji,
         "is_loss":     is_loss,
-        "uyari":       "🔴 ZARAR EDEN SİPARİŞ" if is_loss else "✅ Kârlı"
+        "uyari":       "[ZARAR] ZARAR EDEN SIPARIS" if is_loss else "[OK] Karli"
     }
 
 
@@ -247,13 +247,13 @@ def tum_siparisleri_hesapla(marketplace: str = None) -> dict:
     print(f"  KARLILIK RAPORU — {datetime.now().strftime('%d.%m.%Y %H:%M')}")
     print("="*60)
     print(f"  Toplam sipariş   : {ozet['toplam']}")
-    print(f"  ✅ Kârlı          : {ozet['karli']}")
-    print(f"  🔴 Zararlı        : {ozet['zararli']}")
-    print(f"  💰 Toplam Net Kâr : {ozet['toplam_net_kar']:.2f}₺")
+    print(f"  [OK]    Karli          : {ozet['karli']}")
+    print(f"  [ZARAR] Zararli        : {ozet['zararli']}")
+    print(f"  [TL]    Toplam Net Kar : {ozet['toplam_net_kar']:.2f} TL")
     print("="*60 + "\n")
 
     if ozet["zarar_siparisler"]:
-        print("🔴 ZARAR EDEN SİPARİŞLER:")
+        print("[ZARAR] ZARAR EDEN SIPARISLER:")
         for z in ozet["zarar_siparisler"]:
             print(f"   Order ID: {z['order_id']} | {z['marketplace']} | Net Kâr: {z['net_kar']:.2f}₺")
         print()
