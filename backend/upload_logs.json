@@ -1,5 +1,149 @@
 [
   {
+    "tarih": "28.04.2026 21:22:22",
+    "marketplace": "trendyol",
+    "data_type": "iptal_listesi",
+    "dosya": "prod_108994_ef24e236-8371-47fc-b2f1-e0d42a90b926_İptalleriniz_10.02.2025-09.20.xlsx",
+    "satir_sayisi": 0,
+    "durum": "hata",
+    "hata": "Veritabanina yuklenirken sorun: Execution failed on sql 'INSERT INTO trendyol_iptal_listesi (barkod, paket_no, siparis_tarihi, iptal_tarihi, kargo_kodu, siparis_numarasi, alici, urun_adi, marka, stok_kodu, adet, birim_fiyati, iptal_tipi, iptal_nedeni) VALUES (:barkod, :paket_no, :siparis_tarihi, :iptal_tarihi, :kargo_kodu, :siparis_numarasi, :alici, :urun_adi, :marka, :stok_kodu, :adet, :birim_fiyati, :iptal_tipi, :iptal_nedeni)': (mysql.connector.errors.ProgrammingError) 1054 (42S22): Unknown column 'siparis_numarasi' in 'field list'\n[SQL: INSERT INTO trendyol_iptal_listesi (barkod, paket_no, siparis_tarihi, iptal_tarihi, kargo_kodu, siparis_numarasi, alici, urun_adi, marka, stok_kodu, adet, birim_fiyati, iptal_tipi, iptal_nedeni) VALUES (%(barkod)s, %(paket_no)s, %(siparis_tarihi)s, %(iptal_tarihi)s, %(kargo_kodu)s, %(siparis_numarasi)s, %(alici)s, %(urun_adi)s, %(marka)s, %(stok_kodu)s, %(adet)s, %(birim_fiyati)s, %(iptal_tipi)s, %(iptal_nedeni)s)]\n[parameters: {'barkod': 134375744569, 'paket_no': 2689463457, 'siparis_tarihi': '30.11.2024 09:48', 'iptal_tarihi': '01.12.2024 00:02', 'kargo_kodu': 6330019138965410, 'siparis_numarasi': 8933943516, 'alici': ' x ', 'urun_adi': 'x', 'marka': 'x', 'stok_kodu': 186375765649, 'adet': 1, 'birim_fiyati': 3634.25, 'iptal_tipi': 'x', 'iptal_nedeni': 'x'}]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+  },
+  {
+    "tarih": "28.04.2026 21:19:49",
+    "marketplace": "pazarama",
+    "data_type": "kargo_detay",
+    "dosya": "komisyonKargo1.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "28.04.2026 21:18:55",
+    "marketplace": "pazarama",
+    "data_type": "kargo_detay",
+    "dosya": "komisyonKargo1.xlsx",
+    "satir_sayisi": 0,
+    "durum": "hata",
+    "hata": "Veritabanina yuklenirken sorun: Execution failed on sql 'INSERT INTO pazarama_kargo_detay (bayi_kodu, firma_adi, fatura_no, fatura_tarihi, donem, vkn, komisyon_tutar, kargo_tutari, enterasyon_bedeli) VALUES (:bayi_kodu, :firma_adi, :fatura_no, :fatura_tarihi, :donem, :vkn, :komisyon_tutar, :kargo_tutari, :enterasyon_bedeli)': (mysql.connector.errors.ProgrammingError) 1054 (42S22): Unknown column 'firma_adi' in 'field list'\n[SQL: INSERT INTO pazarama_kargo_detay (bayi_kodu, firma_adi, fatura_no, fatura_tarihi, donem, vkn, komisyon_tutar, kargo_tutari, enterasyon_bedeli) VALUES (%(bayi_kodu)s, %(firma_adi)s, %(fatura_no)s, %(fatura_tarihi)s, %(donem)s, %(vkn)s, %(komisyon_tutar)s, %(kargo_tutari)s, %(enterasyon_bedeli)s)]\n[parameters: {'bayi_kodu': '21967 - 25297', 'firma_adi': 'Sporthink', 'fatura_no': 'TDK2024000107244', 'fatura_tarihi': '31.12.2024', 'donem': 202412, 'vkn': 3090342602, 'komisyon_tutar': 11694.4, 'kargo_tutari': 1361.62, 'enterasyon_bedeli': 669.5}]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+  },
+  {
+    "tarih": "28.04.2026 21:11:09",
+    "marketplace": "n11",
+    "data_type": "komisyon_faturasi",
+    "dosya": "Komisyon_Fatura_SPORTHINK_2024_12.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "28.04.2026 21:09:29",
+    "marketplace": "n11",
+    "data_type": "komisyon_faturasi",
+    "dosya": "Komisyon_Fatura_SPORTHINK_2024_12.xlsx",
+    "satir_sayisi": 0,
+    "durum": "hata",
+    "hata": "Veritabanina yuklenirken sorun: Execution failed on sql 'INSERT INTO n11_komisyon_faturalari (fatura_turu, fatura_tarihi, satici_id, magaza_adi, siparis_numarasi, siparis_kalem_id, islem_tipi_tanimi, siparis_tamamlanma_tarihi, siparis_tutari, komisyon_orani, komisyon_bedeli, pazarlama_hizmet_bedeli, pazaryeri_hizmet_bedeli, vade_farki_yansitmasi, sozlesmeye_bagli_ceza_bedeli, reklam_bedeli, k_fatura_numarasi, satici_hakedis_tutari, hakedis_transfer_tarihi) VALUES (:fatura_turu, :fatura_tarihi, :satici_id, :magaza_adi, :siparis_numarasi, :siparis_kalem_id, :islem_tipi_tanimi, :siparis_tamamlanma_tarihi, :siparis_tutari, :komisyon_orani, :komisyon_bedeli, :pazarlama_hizmet_bedeli, :pazaryeri_hizmet_bedeli, :vade_farki_yansitmasi, :sozlesmeye_bagli_ceza_bedeli, :reklam_bedeli, :k_fatura_numarasi, :satici_hakedis_tutari, :hakedis_transfer_tarihi)': (mysql.connector.errors.ProgrammingError) 1054 (42S22): Unknown column 'siparis_numarasi' in 'field list'\n[SQL: INSERT INTO n11_komisyon_faturalari (fatura_turu, fatura_tarihi, satici_id, magaza_adi, siparis_numarasi, siparis_kalem_id, islem_tipi_tanimi, siparis_tamamlanma_tarihi, siparis_tutari, komisyon_orani, komisyon_bedeli, pazarlama_hizmet_bedeli, pazaryeri_hizmet_bedeli, vade_farki_yansitmasi, sozlesmeye_bagli_ceza_bedeli, reklam_bedeli, k_fatura_numarasi, satici_hakedis_tutari, hakedis_transfer_tarihi) VALUES (%(fatura_turu)s, %(fatura_tarihi)s, %(satici_id)s, %(magaza_adi)s, %(siparis_numarasi)s, %(siparis_kalem_id)s, %(islem_tipi_tanimi)s, %(siparis_tamamlanma_tarihi)s, %(siparis_tutari)s, %(komisyon_orani)s, %(komisyon_bedeli)s, %(pazarlama_hizmet_bedeli)s, %(pazaryeri_hizmet_bedeli)s, %(vade_farki_yansitmasi)s, %(sozlesmeye_bagli_ceza_bedeli)s, %(reklam_bedeli)s, %(k_fatura_numarasi)s, %(satici_hakedis_tutari)s, %(hakedis_transfer_tarihi)s)]\n[parameters: {'fatura_turu': 'axyz', 'fatura_tarihi': datetime.datetime(2024, 12, 31, 0, 0), 'satici_id': None, 'magaza_adi': 'a', 'siparis_numarasi': 296194546325, 'siparis_kalem_id': 399196325, 'islem_tipi_tanimi': 'abc', 'siparis_tamamlanma_tarihi': '09.12.2024', 'siparis_tutari': '0,00', 'komisyon_orani': 0, 'komisyon_bedeli': 62.89, 'pazarlama_hizmet_bedeli': '0,00', 'pazaryeri_hizmet_bedeli': '0,00', 'vade_farki_yansitmasi': '0,00', 'sozlesmeye_bagli_ceza_bedeli': '0,00', 'reklam_bedeli': '0,00', 'k_fatura_numarasi': 'ABC202400034563', 'satici_hakedis_tutari': '0,00', 'hakedis_transfer_tarihi': '00.00.0000'}]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+  },
+  {
+    "tarih": "28.04.2026 21:09:15",
+    "marketplace": "n11",
+    "data_type": "kargo",
+    "dosya": "OzelKargoKampanyasi (5).xls",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "28.04.2026 21:07:05",
+    "marketplace": "n11",
+    "data_type": "kargo",
+    "dosya": "OzelKargoKampanyasi (5).xls",
+    "satir_sayisi": 0,
+    "durum": "hata",
+    "hata": "Veritabanina yuklenirken sorun: Execution failed on sql 'INSERT INTO n11_kargo (siparis_kodu, kampanya_numarasi, musteri, islem_tarihi, islem_turu, kargo_sirketi, tl_desi_veya_kg) VALUES (:siparis_kodu, :kampanya_numarasi, :musteri, :islem_tarihi, :islem_turu, :kargo_sirketi, :tl_desi_veya_kg)': (mysql.connector.errors.ProgrammingError) 1054 (42S22): Unknown column 'tl_desi_veya_kg' in 'field list'\n[SQL: INSERT INTO n11_kargo (siparis_kodu, kampanya_numarasi, musteri, islem_tarihi, islem_turu, kargo_sirketi, tl_desi_veya_kg) VALUES (%(siparis_kodu)s, %(kampanya_numarasi)s, %(musteri)s, %(islem_tarihi)s, %(islem_turu)s, %(kargo_sirketi)s, %(tl_desi_veya_kg)s)]\n[parameters: {'siparis_kodu': 206632578963, 'kampanya_numarasi': 116325193165478, 'musteri': 'x', 'islem_tarihi': datetime.datetime(2024, 12, 30, 10, 6), 'islem_turu': 'abc', 'kargo_sirketi': 'abc kargo', 'tl_desi_veya_kg': '50 TL / 5 Desi veya kg'}]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+  },
+  {
+    "tarih": "28.04.2026 21:03:56",
+    "marketplace": "n11",
+    "data_type": "kargo",
+    "dosya": "OzelKargoKampanyasi (5).xls",
+    "satir_sayisi": 0,
+    "durum": "hata",
+    "hata": "`Import xlrd` failed. Install xlrd >= 2.0.1 for xls Excel support Use pip or conda to install the xlrd package."
+  },
+  {
+    "tarih": "28.04.2026 21:03:20",
+    "marketplace": "lcw",
+    "data_type": "komisyon_faturasi",
+    "dosya": "LEW2024000016598--komisyon-fatura-detayı-09-01-2025.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "28.04.2026 21:03:17",
+    "marketplace": "lcw",
+    "data_type": "komisyon_faturasi",
+    "dosya": "komfatura.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "28.04.2026 21:03:14",
+    "marketplace": "lcw",
+    "data_type": "komisyon_faturasi",
+    "dosya": "BLE2024000017377--komisyon-fatura-detayı-09-01-2025.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "28.04.2026 21:02:57",
+    "marketplace": "lcw",
+    "data_type": "komisyon_faturasi",
+    "dosya": "BLE2024000016805--komisyon-fatura-detayı-09-01-2025.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "28.04.2026 21:00:48",
+    "marketplace": "lcw",
+    "data_type": "komisyon_faturasi",
+    "dosya": "BLE2024000016805--komisyon-fatura-detayı-09-01-2025.xlsx",
+    "satir_sayisi": 0,
+    "durum": "hata",
+    "hata": "Veritabanina yuklenirken sorun: Execution failed on sql 'INSERT INTO lcw_komisyon_faturalari (islem_kayit_no, satici, cari_kod, siparis_no, paket_no, barkod, marka, urun_kategori, urun_adi, islem_tipi, siparis_tarihi, islem_tarihi, vade_gunu, vade_tarihi, hakedis_haftasi, not_alani, muhasebe_gunluk_no, pesin_urun_tutari, taksitli_urun_tutari, lcw_taksit_farki, lcwaikiki_sponsorlugu, satici_sponsorlugu, toplam_indirim, indirim_aciklamasi, satis_tutari, komisyon_orani, lcw_komisyon_hakedis, lcw_toplam_hakedis, satici_hakedis, fatura_no, fatura_tarihi, yan_not, mevzuata_gore_pesin_tutar, mevzuata_gore_taksitli_tutar) VALUES (:islem_kayit_no, :satici, :cari_kod, :siparis_no, :paket_no, :barkod, :marka, :urun_kategori, :urun_adi, :islem_tipi, :siparis_tarihi, :islem_tarihi, :vade_gunu, :vade_tarihi, :hakedis_haftasi, :not_alani, :muhasebe_gunluk_no, :pesin_urun_tutari, :taksitli_urun_tutari, :lcw_taksit_farki, :lcwaikiki_sponsorlugu, :satici_sponsorlugu, :toplam_indirim, :indirim_aciklamasi, :satis_tutari, :komisyon_orani, :lcw_komisyon_hakedis, :lcw_toplam_hakedis, :satici_hakedis, :fatura_no, :fatura_tarihi, :yan_not, :mevzuata_gore_pesin_tutar, :mevzuata_gore_taksitli_tutar)': (mysql.connector.errors.ProgrammingError) 1054 (42S22): Unknown column 'mevzuata_gore_pesin_tutar' in 'field list'\n[SQL: INSERT INTO lcw_komisyon_faturalari (islem_kayit_no, satici, cari_kod, siparis_no, paket_no, barkod, marka, urun_kategori, urun_adi, islem_tipi, siparis_tarihi, islem_tarihi, vade_gunu, vade_tarihi, hakedis_haftasi, not_alani, muhasebe_gunluk_no, pesin_urun_tutari, taksitli_urun_tutari, lcw_taksit_farki, lcwaikiki_sponsorlugu, satici_sponsorlugu, toplam_indirim, indirim_aciklamasi, satis_tutari, komisyon_orani, lcw_komisyon_hakedis, lcw_toplam_hakedis, satici_hakedis, fatura_no, fatura_tarihi, yan_not, mevzuata_gore_pesin_tutar, mevzuata_gore_taksitli_tutar) VALUES (%(islem_kayit_no)s, %(satici)s, %(cari_kod)s, %(siparis_no)s, %(paket_no)s, %(barkod)s, %(marka)s, %(urun_kategori)s, %(urun_adi)s, %(islem_tipi)s, %(siparis_tarihi)s, %(islem_tarihi)s, %(vade_gunu)s, %(vade_tarihi)s, %(hakedis_haftasi)s, %(not_alani)s, %(muhasebe_gunluk_no)s, %(pesin_urun_tutari)s, %(taksitli_urun_tutari)s, %(lcw_taksit_farki)s, %(lcwaikiki_sponsorlugu)s, %(satici_sponsorlugu)s, %(toplam_indirim)s, %(indirim_aciklamasi)s, %(satis_tutari)s, %(komisyon_orani)s, %(lcw_komisyon_hakedis)s, %(lcw_toplam_hakedis)s, %(satici_hakedis)s, %(fatura_no)s, %(fatura_tarihi)s, %(yan_not)s, %(mevzuata_gore_pesin_tutar)s, %(mevzuata_gore_taksitli_tutar)s)]\n[parameters: {'islem_kayit_no': 7398963, 'satici': 'xyz Şirketi', 'cari_kod': 'TRKAM-0006537', 'siparis_no': 2412111932156, 'paket_no': 5412111796348, 'barkod': 5715317896538, 'marka': 'a', 'urun_kategori': 'x', 'urun_adi': 'x', 'islem_tipi': 'x', 'siparis_tarihi': datetime.datetime(2024, 12, 11, 19, 36, 33), 'islem_tarihi': datetime.datetime(2024, 12, 16, 15, 27, 48), 'vade_gunu': 14, 'vade_tarihi': datetime.datetime(2024, 12, 30, 15, 27, 48), 'hakedis_haftasi': '30.12.2024-05.01.2025 Haftası Hakediş Ödemesi', 'not_alani': None, 'muhasebe_gunluk_no': 9123632, 'pesin_urun_tutari': 2963.99, 'taksitli_urun_tutari': 2963.99, 'lcw_taksit_farki': 0, 'lcwaikiki_sponsorlugu': 120, 'satici_sponsorlugu': 1600, 'toplam_indirim': 1363.9899999999998, 'indirim_aciklamasi': 'abc indirim', 'satis_tutari': 1396.3, 'komisyon_orani': 0.06, 'lcw_komisyon_hakedis': 56.0995, 'lcw_toplam_hakedis': 56.0995, 'satici_hakedis': 1103.8905, 'fatura_no': 'ABC2024000016365', 'fatura_tarihi': datetime.datetime(2024, 12, 22, 0, 0), 'yan_not': None, 'mevzuata_gore_pesin_tutar': 2231.99, 'mevzuata_gore_taksitli_tutar': 2231.99}]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+  },
+  {
+    "tarih": "28.04.2026 20:59:24",
+    "marketplace": "lcw",
+    "data_type": "komisyon_faturasi",
+    "dosya": "BLE2024000016805--komisyon-fatura-detayı-09-01-2025.xlsx",
+    "satir_sayisi": 0,
+    "durum": "hata",
+    "hata": "Veritabanina yuklenirken sorun: Execution failed on sql 'INSERT INTO lcw_komisyon_faturalari (islem_kayit_no, satici, cari_kod, siparis_no, paket_no, barkod, marka, urun_kategori, urun_adi, islem_tipi, siparis_tarihi, islem_tarihi, vade_gunu, vade_tarihi, hakedis_haftasi, not_alani, muhasebe_gunluk_no, pesin_urun_tutari, taksitli_urun_tutari, lcw_taksit_farki, lcwaikiki_sponsorlugu, satici_sponsorlugu, toplam_indirim, indirim_aciklamasi, satis_tutari, komisyon_orani, lcw_komisyon_hakedis, lcw_toplam_hakedis, satici_hakedis, fatura_no, fatura_tarihi, yan_not, mevzuata_gore_pesin_tutar, mevzuata_gore_taksitli_tutar) VALUES (:islem_kayit_no, :satici, :cari_kod, :siparis_no, :paket_no, :barkod, :marka, :urun_kategori, :urun_adi, :islem_tipi, :siparis_tarihi, :islem_tarihi, :vade_gunu, :vade_tarihi, :hakedis_haftasi, :not_alani, :muhasebe_gunluk_no, :pesin_urun_tutari, :taksitli_urun_tutari, :lcw_taksit_farki, :lcwaikiki_sponsorlugu, :satici_sponsorlugu, :toplam_indirim, :indirim_aciklamasi, :satis_tutari, :komisyon_orani, :lcw_komisyon_hakedis, :lcw_toplam_hakedis, :satici_hakedis, :fatura_no, :fatura_tarihi, :yan_not, :mevzuata_gore_pesin_tutar, :mevzuata_gore_taksitli_tutar)': (mysql.connector.errors.ProgrammingError) 1054 (42S22): Unknown column 'mevzuata_gore_pesin_tutar' in 'field list'\n[SQL: INSERT INTO lcw_komisyon_faturalari (islem_kayit_no, satici, cari_kod, siparis_no, paket_no, barkod, marka, urun_kategori, urun_adi, islem_tipi, siparis_tarihi, islem_tarihi, vade_gunu, vade_tarihi, hakedis_haftasi, not_alani, muhasebe_gunluk_no, pesin_urun_tutari, taksitli_urun_tutari, lcw_taksit_farki, lcwaikiki_sponsorlugu, satici_sponsorlugu, toplam_indirim, indirim_aciklamasi, satis_tutari, komisyon_orani, lcw_komisyon_hakedis, lcw_toplam_hakedis, satici_hakedis, fatura_no, fatura_tarihi, yan_not, mevzuata_gore_pesin_tutar, mevzuata_gore_taksitli_tutar) VALUES (%(islem_kayit_no)s, %(satici)s, %(cari_kod)s, %(siparis_no)s, %(paket_no)s, %(barkod)s, %(marka)s, %(urun_kategori)s, %(urun_adi)s, %(islem_tipi)s, %(siparis_tarihi)s, %(islem_tarihi)s, %(vade_gunu)s, %(vade_tarihi)s, %(hakedis_haftasi)s, %(not_alani)s, %(muhasebe_gunluk_no)s, %(pesin_urun_tutari)s, %(taksitli_urun_tutari)s, %(lcw_taksit_farki)s, %(lcwaikiki_sponsorlugu)s, %(satici_sponsorlugu)s, %(toplam_indirim)s, %(indirim_aciklamasi)s, %(satis_tutari)s, %(komisyon_orani)s, %(lcw_komisyon_hakedis)s, %(lcw_toplam_hakedis)s, %(satici_hakedis)s, %(fatura_no)s, %(fatura_tarihi)s, %(yan_not)s, %(mevzuata_gore_pesin_tutar)s, %(mevzuata_gore_taksitli_tutar)s)]\n[parameters: {'islem_kayit_no': 7398963, 'satici': 'xyz Şirketi', 'cari_kod': 'TRKAM-0006537', 'siparis_no': 2412111932156, 'paket_no': 5412111796348, 'barkod': 5715317896538, 'marka': 'a', 'urun_kategori': 'x', 'urun_adi': 'x', 'islem_tipi': 'x', 'siparis_tarihi': datetime.datetime(2024, 12, 11, 19, 36, 33), 'islem_tarihi': datetime.datetime(2024, 12, 16, 15, 27, 48), 'vade_gunu': 14, 'vade_tarihi': datetime.datetime(2024, 12, 30, 15, 27, 48), 'hakedis_haftasi': '30.12.2024-05.01.2025 Haftası Hakediş Ödemesi', 'not_alani': None, 'muhasebe_gunluk_no': 9123632, 'pesin_urun_tutari': 2963.99, 'taksitli_urun_tutari': 2963.99, 'lcw_taksit_farki': 0, 'lcwaikiki_sponsorlugu': 120, 'satici_sponsorlugu': 1600, 'toplam_indirim': 1363.9899999999998, 'indirim_aciklamasi': 'abc indirim', 'satis_tutari': 1396.3, 'komisyon_orani': 0.06, 'lcw_komisyon_hakedis': 56.0995, 'lcw_toplam_hakedis': 56.0995, 'satici_hakedis': 1103.8905, 'fatura_no': 'ABC2024000016365', 'fatura_tarihi': datetime.datetime(2024, 12, 22, 0, 0), 'yan_not': None, 'mevzuata_gore_pesin_tutar': 2231.99, 'mevzuata_gore_taksitli_tutar': 2231.99}]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+  },
+  {
+    "tarih": "28.04.2026 20:57:14",
+    "marketplace": "lcw",
+    "data_type": "komisyon_faturasi",
+    "dosya": "BLE2024000016805--komisyon-fatura-detayı-09-01-2025.xlsx",
+    "satir_sayisi": 0,
+    "durum": "hata",
+    "hata": "Veritabanina yuklenirken sorun: Execution failed on sql 'INSERT INTO lcw_komisyon_faturalari (islem_kayit_no, satici, cari_kod, siparis_numarasi, paket_no, barkod, marka, urun_kategori, urun_adi, islem_tipi, siparis_tarihi, islem_tarihi, vade_gunu, vade_tarihi, hakedis_haftasi, \"not\", muhasebe_gunluk_no, pesin_urun_tutari, taksitli_urun_tutari, lcw_taksit_farki, lcwaikiki_sponsorlugu, satici_sponsorlugu, toplam_indirim, indirim_aciklamasi, satis_tutari, komisyon_orani, lcw_komisyon_hakedis, lcw_toplam_hakedis, satici_hakedis, fatura_numarasi, fatura_tarihi, yan_not, mevzuata_gore_pesin_tutar, mevzuata_gore_taksitli_tutar) VALUES (:islem_kayit_no, :satici, :cari_kod, :siparis_numarasi, :paket_no, :barkod, :marka, :urun_kategori, :urun_adi, :islem_tipi, :siparis_tarihi, :islem_tarihi, :vade_gunu, :vade_tarihi, :hakedis_haftasi, :not, :muhasebe_gunluk_no, :pesin_urun_tutari, :taksitli_urun_tutari, :lcw_taksit_farki, :lcwaikiki_sponsorlugu, :satici_sponsorlugu, :toplam_indirim, :indirim_aciklamasi, :satis_tutari, :komisyon_orani, :lcw_komisyon_hakedis, :lcw_toplam_hakedis, :satici_hakedis, :fatura_numarasi, :fatura_tarihi, :yan_not, :mevzuata_gore_pesin_tutar, :mevzuata_gore_taksitli_tutar)': (mysql.connector.errors.ProgrammingError) 1054 (42S22): Unknown column 'siparis_numarasi' in 'field list'\n[SQL: INSERT INTO lcw_komisyon_faturalari (islem_kayit_no, satici, cari_kod, siparis_numarasi, paket_no, barkod, marka, urun_kategori, urun_adi, islem_tipi, siparis_tarihi, islem_tarihi, vade_gunu, vade_tarihi, hakedis_haftasi, `not`, muhasebe_gunluk_no, pesin_urun_tutari, taksitli_urun_tutari, lcw_taksit_farki, lcwaikiki_sponsorlugu, satici_sponsorlugu, toplam_indirim, indirim_aciklamasi, satis_tutari, komisyon_orani, lcw_komisyon_hakedis, lcw_toplam_hakedis, satici_hakedis, fatura_numarasi, fatura_tarihi, yan_not, mevzuata_gore_pesin_tutar, mevzuata_gore_taksitli_tutar) VALUES (%(islem_kayit_no)s, %(satici)s, %(cari_kod)s, %(siparis_numarasi)s, %(paket_no)s, %(barkod)s, %(marka)s, %(urun_kategori)s, %(urun_adi)s, %(islem_tipi)s, %(siparis_tarihi)s, %(islem_tarihi)s, %(vade_gunu)s, %(vade_tarihi)s, %(hakedis_haftasi)s, %(not)s, %(muhasebe_gunluk_no)s, %(pesin_urun_tutari)s, %(taksitli_urun_tutari)s, %(lcw_taksit_farki)s, %(lcwaikiki_sponsorlugu)s, %(satici_sponsorlugu)s, %(toplam_indirim)s, %(indirim_aciklamasi)s, %(satis_tutari)s, %(komisyon_orani)s, %(lcw_komisyon_hakedis)s, %(lcw_toplam_hakedis)s, %(satici_hakedis)s, %(fatura_numarasi)s, %(fatura_tarihi)s, %(yan_not)s, %(mevzuata_gore_pesin_tutar)s, %(mevzuata_gore_taksitli_tutar)s)]\n[parameters: {'islem_kayit_no': 7398963, 'satici': 'xyz Şirketi', 'cari_kod': 'TRKAM-0006537', 'siparis_numarasi': 2412111932156, 'paket_no': 5412111796348, 'barkod': 5715317896538, 'marka': 'a', 'urun_kategori': 'x', 'urun_adi': 'x', 'islem_tipi': 'x', 'siparis_tarihi': datetime.datetime(2024, 12, 11, 19, 36, 33), 'islem_tarihi': datetime.datetime(2024, 12, 16, 15, 27, 48), 'vade_gunu': 14, 'vade_tarihi': datetime.datetime(2024, 12, 30, 15, 27, 48), 'hakedis_haftasi': '30.12.2024-05.01.2025 Haftası Hakediş Ödemesi', 'not': None, 'muhasebe_gunluk_no': 9123632, 'pesin_urun_tutari': 2963.99, 'taksitli_urun_tutari': 2963.99, 'lcw_taksit_farki': 0, 'lcwaikiki_sponsorlugu': 120, 'satici_sponsorlugu': 1600, 'toplam_indirim': 1363.9899999999998, 'indirim_aciklamasi': 'abc indirim', 'satis_tutari': 1396.3, 'komisyon_orani': 0.06, 'lcw_komisyon_hakedis': 56.0995, 'lcw_toplam_hakedis': 56.0995, 'satici_hakedis': 1103.8905, 'fatura_numarasi': 'ABC2024000016365', 'fatura_tarihi': datetime.datetime(2024, 12, 22, 0, 0), 'yan_not': None, 'mevzuata_gore_pesin_tutar': 2231.99, 'mevzuata_gore_taksitli_tutar': 2231.99}]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+  },
+  {
+    "tarih": "28.04.2026 20:53:24",
+    "marketplace": "lcw",
+    "data_type": "komisyon_faturasi",
+    "dosya": "BLE2024000016805--komisyon-fatura-detayı-09-01-2025.xlsx",
+    "satir_sayisi": 0,
+    "durum": "hata",
+    "hata": "Veritabanina yuklenirken sorun: (mysql.connector.errors.DatabaseError) 2003 (HY000): Can't connect to MySQL server on 'localhost:3306' (10061)\n(Background on this error at: https://sqlalche.me/e/20/4xp6)"
+  },
+  {
     "tarih": "25.04.2026 00:07:40",
     "marketplace": "lcw",
     "data_type": "komisyon_faturasi",
