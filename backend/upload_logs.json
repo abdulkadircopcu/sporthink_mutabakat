@@ -1,5 +1,140 @@
 [
   {
+    "tarih": "28.04.2026 21:56:21",
+    "marketplace": "trendyol",
+    "data_type": "ceza_faturasi",
+    "dosya": "detaylar - 2025-01-15T135405.251.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "28.04.2026 21:51:47",
+    "marketplace": "trendyol",
+    "data_type": "ceza_faturasi",
+    "dosya": "detaylar - 2025-01-15T142432.473.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "28.04.2026 21:51:43",
+    "marketplace": "trendyol",
+    "data_type": "ceza_faturasi",
+    "dosya": "detaylar - 2025-01-15T141545.355.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "28.04.2026 21:50:52",
+    "marketplace": "trendyol",
+    "data_type": "ceza_faturasi",
+    "dosya": "detaylar - 2025-01-15T135515.807.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "28.04.2026 21:50:41",
+    "marketplace": "trendyol",
+    "data_type": "ceza_faturasi",
+    "dosya": "detaylar - 2025-01-15T135757.745.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "28.04.2026 21:50:33",
+    "marketplace": "trendyol",
+    "data_type": "ceza_faturasi",
+    "dosya": "detaylar - 2025-01-15T135405.251.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "28.04.2026 21:36:14",
+    "marketplace": "trendyol",
+    "data_type": "komisyon_faturasi",
+    "dosya": "SaticiFatura_29014209_08.12.2024-14.44.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "28.04.2026 21:36:10",
+    "marketplace": "trendyol",
+    "data_type": "komisyon_faturasi",
+    "dosya": "SaticiFatura_29014208_08.12.2024-14.45 (1).xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "28.04.2026 21:36:06",
+    "marketplace": "trendyol",
+    "data_type": "komisyon_faturasi",
+    "dosya": "SaticiFatura_29014207_08.12.2024-14.17.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "28.04.2026 21:34:50",
+    "marketplace": "trendyol",
+    "data_type": "komisyon_faturasi",
+    "dosya": "SaticiFatura_29014207_08.12.2024-14.17.xlsx",
+    "satir_sayisi": 0,
+    "durum": "hata",
+    "hata": "Veritabanina yuklenirken sorun: Execution failed on sql 'INSERT INTO trendyol_komisyon_faturalari (fatura_no, fatura_turu, fatura_tarihi, kayit_no, islem_tipi, siparis_no, siparis_tarihi, ulke, islem_tarihi, satici, satici_cari_adi, urun_adi, barkod, komisyon_orani, trendyol_hakedis, satici_hakedis, vade_suresi, teslim_tarihi, vade_tarihi, toplam_tutar, musteri_ad, musteri_soyad, magaza_nosu, magaza_adi, magaza_adresi) VALUES (:fatura_no, :fatura_turu, :fatura_tarihi, :kayit_no, :islem_tipi, :siparis_no, :siparis_tarihi, :ulke, :islem_tarihi, :satici, :satici_cari_adi, :urun_adi, :barkod, :komisyon_orani, :trendyol_hakedis, :satici_hakedis, :vade_suresi, :teslim_tarihi, :vade_tarihi, :toplam_tutar, :musteri_ad, :musteri_soyad, :magaza_nosu, :magaza_adi, :magaza_adresi)': (mysql.connector.errors.ProgrammingError) 1054 (42S22): Unknown column 'magaza_nosu' in 'field list'\n[SQL: INSERT INTO trendyol_komisyon_faturalari (fatura_no, fatura_turu, fatura_tarihi, kayit_no, islem_tipi, siparis_no, siparis_tarihi, ulke, islem_tarihi, satici, satici_cari_adi, urun_adi, barkod, komisyon_orani, trendyol_hakedis, satici_hakedis, vade_suresi, teslim_tarihi, vade_tarihi, toplam_tutar, musteri_ad, musteri_soyad, magaza_nosu, magaza_adi, magaza_adresi) VALUES (%(fatura_no)s, %(fatura_turu)s, %(fatura_tarihi)s, %(kayit_no)s, %(islem_tipi)s, %(siparis_no)s, %(siparis_tarihi)s, %(ulke)s, %(islem_tarihi)s, %(satici)s, %(satici_cari_adi)s, %(urun_adi)s, %(barkod)s, %(komisyon_orani)s, %(trendyol_hakedis)s, %(satici_hakedis)s, %(vade_suresi)s, %(teslim_tarihi)s, %(vade_tarihi)s, %(toplam_tutar)s, %(musteri_ad)s, %(musteri_soyad)s, %(magaza_nosu)s, %(magaza_adi)s, %(magaza_adresi)s)]\n[parameters: {'fatura_no': 'ABC2024005459863', 'fatura_turu': 'x', 'fatura_tarihi': datetime.datetime(2024, 12, 7, 0, 0), 'kayit_no': 6969106532, 'islem_tipi': 'c', 'siparis_no': 9640323216, 'siparis_tarihi': '28.11.2024 22:28', 'ulke': 'c', 'islem_tarihi': '28.11.2024 22:28', 'satici': 'yfyug', 'satici_cari_adi': 'vjg', 'urun_adi': 'jvj', 'barkod': 1200633281263, 'komisyon_orani': 2.6, 'trendyol_hakedis': 13.09, 'satici_hakedis': 496.97, 'vade_suresi': 11, 'teslim_tarihi': '06.12.2024 11:51', 'vade_tarihi': '15.12.2024 11:51', 'toplam_tutar': 532.06, 'musteri_ad': 'El****', 'musteri_soyad': 'Sa****', 'magaza_nosu': None, 'magaza_adi': None, 'magaza_adresi': None}]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+  },
+  {
+    "tarih": "28.04.2026 21:34:42",
+    "marketplace": "trendyol",
+    "data_type": "kargo_faturasi",
+    "dosya": "kargo11.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "28.04.2026 21:34:39",
+    "marketplace": "trendyol",
+    "data_type": "kargo_faturasi",
+    "dosya": "kargo10.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "28.04.2026 21:34:35",
+    "marketplace": "trendyol",
+    "data_type": "kargo_faturasi",
+    "dosya": "kargo1.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "28.04.2026 21:33:17",
+    "marketplace": "trendyol",
+    "data_type": "kargo_faturasi",
+    "dosya": "kargo1.xlsx",
+    "satir_sayisi": 0,
+    "durum": "hata",
+    "hata": "Veritabanina yuklenirken sorun: Execution failed on sql 'INSERT INTO trendyol_kargo_faturalari (fatura_no, fatura_turu, fatura_tarihi, satici_id, gonderi_ucreti_kdv_dahil, desi, satici_ismi, siparis_no, gonderi_iade, gonderi_iade_kodu, kargo_firmasi, siparis_tarihi, sevk_tarihi, siparis_tutari, min_kampanya_baremi, urun_adedi, butik_id, aciklama) VALUES (:fatura_no, :fatura_turu, :fatura_tarihi, :satici_id, :gonderi_ucreti_kdv_dahil, :desi, :satici_ismi, :siparis_no, :gonderi_iade, :gonderi_iade_kodu, :kargo_firmasi, :siparis_tarihi, :sevk_tarihi, :siparis_tutari, :min_kampanya_baremi, :urun_adedi, :butik_id, :aciklama)': (mysql.connector.errors.ProgrammingError) 1054 (42S22): Unknown column 'gonderi_ucreti_kdv_dahil' in 'field list'\n[SQL: INSERT INTO trendyol_kargo_faturalari (fatura_no, fatura_turu, fatura_tarihi, satici_id, gonderi_ucreti_kdv_dahil, desi, satici_ismi, siparis_no, gonderi_iade, gonderi_iade_kodu, kargo_firmasi, siparis_tarihi, sevk_tarihi, siparis_tutari, min_kampanya_baremi, urun_adedi, butik_id, aciklama) VALUES (%(fatura_no)s, %(fatura_turu)s, %(fatura_tarihi)s, %(satici_id)s, %(gonderi_ucreti_kdv_dahil)s, %(desi)s, %(satici_ismi)s, %(siparis_no)s, %(gonderi_iade)s, %(gonderi_iade_kodu)s, %(kargo_firmasi)s, %(siparis_tarihi)s, %(sevk_tarihi)s, %(siparis_tutari)s, %(min_kampanya_baremi)s, %(urun_adedi)s, %(butik_id)s, %(aciklama)s)]\n[parameters: {'fatura_no': 'ABC2024021096547', 'fatura_turu': 'X', 'fatura_tarihi': datetime.datetime(2024, 12, 2, 0, 0), 'satici_id': 708324, 'gonderi_ucreti_kdv_dahil': 97.13, 'desi': 3, 'satici_ismi': 'x', 'siparis_no': 9593945621, 'gonderi_iade': 'x', 'gonderi_iade_kodu': 7330018429685210, 'kargo_firmasi': 'x', 'siparis_tarihi': datetime.datetime(2024, 11, 6, 16, 56, 49, 450000), 'sevk_tarihi': datetime.datetime(2024, 11, 7, 17, 5), 'siparis_tutari': 1365.35, 'min_kampanya_baremi': 230, 'urun_adedi': 1, 'butik_id': None, 'aciklama': None}]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+  },
+  {
+    "tarih": "28.04.2026 21:29:07",
+    "marketplace": "trendyol",
+    "data_type": "iptal_listesi",
+    "dosya": "prod_108994_ef24e236-8371-47fc-b2f1-e0d42a90b926_İptalleriniz_10.02.2025-09.20.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
     "tarih": "28.04.2026 21:22:22",
     "marketplace": "trendyol",
     "data_type": "iptal_listesi",
