@@ -1,5 +1,50 @@
 [
   {
+    "tarih": "07.05.2026 21:34:14",
+    "marketplace": "pazarama",
+    "data_type": "komisyon_kargo",
+    "dosya": "komisyonKargo1.xlsx",
+    "satir_sayisi": 23,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "07.05.2026 21:29:14",
+    "marketplace": "pazarama",
+    "data_type": "komisyon_kargo",
+    "dosya": "komisyonKargo1.xlsx",
+    "satir_sayisi": 0,
+    "durum": "hata",
+    "hata": "Veritabanina yuklenirken sorun: Execution failed on sql 'INSERT INTO pazarama_komisyon_detay (fatura_no, fatura_tarihi, fatura_turu, bayi_kodu, satici_adi, siparis_numarasi, siparis_durumu, siparis_tarihi, karsi_islem_id, siparis_tutari, satici_komisyon_tutari, entegrasyon_bedeli, etm_tutari, etm_komisyonu) VALUES (:fatura_no, :fatura_tarihi, :fatura_turu, :bayi_kodu, :satici_adi, :siparis_numarasi, :siparis_durumu, :siparis_tarihi, :karsi_islem_id, :siparis_tutari, :satici_komisyon_tutari, :entegrasyon_bedeli, :etm_tutari, :etm_komisyonu)': (mysql.connector.errors.ProgrammingError) 1054 (42S22): Unknown column 'siparis_numarasi' in 'field list'\n[SQL: INSERT INTO pazarama_komisyon_detay (fatura_no, fatura_tarihi, fatura_turu, bayi_kodu, satici_adi, siparis_numarasi, siparis_durumu, siparis_tarihi, karsi_islem_id, siparis_tutari, satici_komisyon_tutari, entegrasyon_bedeli, etm_tutari, etm_komisyonu) VALUES (%(fatura_no)s, %(fatura_tarihi)s, %(fatura_turu)s, %(bayi_kodu)s, %(satici_adi)s, %(siparis_numarasi)s, %(siparis_durumu)s, %(siparis_tarihi)s, %(karsi_islem_id)s, %(siparis_tutari)s, %(satici_komisyon_tutari)s, %(entegrasyon_bedeli)s, %(etm_tutari)s, %(etm_komisyonu)s)]\n[parameters: {'fatura_no': 'XYZ2024003216654', 'fatura_tarihi': '31.12.2024', 'fatura_turu': 'x', 'bayi_kodu': '26547 - 24523', 'satici_adi': 'x', 'siparis_numarasi': 472112365, 'siparis_durumu': 'x', 'siparis_tarihi': '13.12.2024', 'karsi_islem_id': 'klm91e22-d43a-4abc-8ece-63dd1b74b75e', 'siparis_tutari': 1763.99, 'satici_komisyon_tutari': -88.4, 'entegrasyon_bedeli': -4.5, 'etm_tutari': 325, 'etm_komisyonu': -27.13}]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+  },
+  {
+    "tarih": "07.05.2026 21:27:54",
+    "marketplace": "pazarama",
+    "data_type": "komisyon_kargo",
+    "dosya": "komisyonKargo1.xlsx",
+    "satir_sayisi": 0,
+    "durum": "hata",
+    "hata": "Veritabanina yuklenirken sorun: Execution failed on sql 'INSERT INTO pazarama_komisyon_detay (fatura_no, fatura_tarihi, fatura_turu, bayi_kodu, satici_adi, siparis_numarasi, siparis_durumu, siparis_tarihi, karsi_islem_id, siparis_tutari, satici_komisyon_tutari, entegrasyon_bedeli, etm_tutari, etm_komisyonu) VALUES (:fatura_no, :fatura_tarihi, :fatura_turu, :bayi_kodu, :satici_adi, :siparis_numarasi, :siparis_durumu, :siparis_tarihi, :karsi_islem_id, :siparis_tutari, :satici_komisyon_tutari, :entegrasyon_bedeli, :etm_tutari, :etm_komisyonu)': (mysql.connector.errors.ProgrammingError) 1054 (42S22): Unknown column 'siparis_numarasi' in 'field list'\n[SQL: INSERT INTO pazarama_komisyon_detay (fatura_no, fatura_tarihi, fatura_turu, bayi_kodu, satici_adi, siparis_numarasi, siparis_durumu, siparis_tarihi, karsi_islem_id, siparis_tutari, satici_komisyon_tutari, entegrasyon_bedeli, etm_tutari, etm_komisyonu) VALUES (%(fatura_no)s, %(fatura_tarihi)s, %(fatura_turu)s, %(bayi_kodu)s, %(satici_adi)s, %(siparis_numarasi)s, %(siparis_durumu)s, %(siparis_tarihi)s, %(karsi_islem_id)s, %(siparis_tutari)s, %(satici_komisyon_tutari)s, %(entegrasyon_bedeli)s, %(etm_tutari)s, %(etm_komisyonu)s)]\n[parameters: {'fatura_no': 'XYZ2024003216654', 'fatura_tarihi': '31.12.2024', 'fatura_turu': 'x', 'bayi_kodu': '26547 - 24523', 'satici_adi': 'x', 'siparis_numarasi': 472112365, 'siparis_durumu': 'x', 'siparis_tarihi': '13.12.2024', 'karsi_islem_id': 'klm91e22-d43a-4abc-8ece-63dd1b74b75e', 'siparis_tutari': 1763.99, 'satici_komisyon_tutari': -88.4, 'entegrasyon_bedeli': -4.5, 'etm_tutari': 325, 'etm_komisyonu': -27.13}]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+  },
+  {
+    "tarih": "07.05.2026 21:16:56",
+    "marketplace": "pazarama",
+    "data_type": "komisyon_kargo",
+    "dosya": "komisyonKargo1.xlsx",
+    "satir_sayisi": 0,
+    "durum": "hata",
+    "hata": "Veritabanina yuklenirken sorun: Execution failed on sql 'INSERT INTO pazarama_fatura_ozet (bayi_kodu, firma_adi, fatura_no, fatura_tarihi, donem, vkn, komisyon_tutar, kargo_tutari, enterasyon_bedeli) VALUES (:bayi_kodu, :firma_adi, :fatura_no, :fatura_tarihi, :donem, :vkn, :komisyon_tutar, :kargo_tutari, :enterasyon_bedeli)': (mysql.connector.errors.ProgrammingError) 1054 (42S22): Unknown column 'enterasyon_bedeli' in 'field list'\n[SQL: INSERT INTO pazarama_fatura_ozet (bayi_kodu, firma_adi, fatura_no, fatura_tarihi, donem, vkn, komisyon_tutar, kargo_tutari, enterasyon_bedeli) VALUES (%(bayi_kodu)s, %(firma_adi)s, %(fatura_no)s, %(fatura_tarihi)s, %(donem)s, %(vkn)s, %(komisyon_tutar)s, %(kargo_tutari)s, %(enterasyon_bedeli)s)]\n[parameters: {'bayi_kodu': '21967 - 25297', 'firma_adi': 'Sporthink', 'fatura_no': 'TDK2024000107244', 'fatura_tarihi': '31.12.2024', 'donem': 202412, 'vkn': 3090342602, 'komisyon_tutar': 11694.4, 'kargo_tutari': 1361.62, 'enterasyon_bedeli': 669.5}]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+  },
+  {
+    "tarih": "07.05.2026 21:12:59",
+    "marketplace": "pazarama",
+    "data_type": "komisyon_kargo",
+    "dosya": "komisyonKargo1.xlsx",
+    "satir_sayisi": 0,
+    "durum": "hata",
+    "hata": "Veritabanina yuklenirken sorun: Execution failed on sql 'INSERT INTO pazarama_fatura_ozet (bayi_kodu, firma_adi, fatura_no, fatura_tarihi, donem, vkn, komisyon_tutar, kargo_tutari, enterasyon_bedeli) VALUES (:bayi_kodu, :firma_adi, :fatura_no, :fatura_tarihi, :donem, :vkn, :komisyon_tutar, :kargo_tutari, :enterasyon_bedeli)': (mysql.connector.errors.ProgrammingError) 1054 (42S22): Unknown column 'enterasyon_bedeli' in 'field list'\n[SQL: INSERT INTO pazarama_fatura_ozet (bayi_kodu, firma_adi, fatura_no, fatura_tarihi, donem, vkn, komisyon_tutar, kargo_tutari, enterasyon_bedeli) VALUES (%(bayi_kodu)s, %(firma_adi)s, %(fatura_no)s, %(fatura_tarihi)s, %(donem)s, %(vkn)s, %(komisyon_tutar)s, %(kargo_tutari)s, %(enterasyon_bedeli)s)]\n[parameters: {'bayi_kodu': '21967 - 25297', 'firma_adi': 'Sporthink', 'fatura_no': 'TDK2024000107244', 'fatura_tarihi': '31.12.2024', 'donem': 202412, 'vkn': 3090342602, 'komisyon_tutar': 11694.4, 'kargo_tutari': 1361.62, 'enterasyon_bedeli': 669.5}]\n(Background on this error at: https://sqlalche.me/e/20/f405)"
+  },
+  {
     "tarih": "28.04.2026 21:56:21",
     "marketplace": "trendyol",
     "data_type": "ceza_faturasi",

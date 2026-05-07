@@ -22,18 +22,15 @@ upload_bp = Blueprint("upload", __name__)
 LOG_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "upload_logs.json")
 
 def log_yaz(marketplace, data_type, dosya_adi, satir_sayisi, durum, hata_mesaji=None):
-    """Yükleme olayını JSON log dosyasına kaydeder."""
     kayit = {
         "tarih": datetime.now().strftime("%d.%m.%Y %H:%M:%S"),
         "marketplace": marketplace,
         "data_type": data_type,
         "dosya": dosya_adi,
         "satir_sayisi": satir_sayisi,
-        "durum": durum,          # "basarili" veya "hata"
+        "durum": durum,
         "hata": hata_mesaji
     }
-
-    # Mevcut logları oku
     loglar = []
     if os.path.exists(LOG_FILE):
         try:
@@ -41,132 +38,107 @@ def log_yaz(marketplace, data_type, dosya_adi, satir_sayisi, durum, hata_mesaji=
                 loglar = json.load(f)
         except Exception:
             loglar = []
-
-    # Yeni kaydı başa ekle (en yeni en üstte)
     loglar.insert(0, kayit)
-
-    # Maksimum 200 log tut
     loglar = loglar[:200]
-
     with open(LOG_FILE, "w", encoding="utf-8") as f:
         json.dump(loglar, f, ensure_ascii=False, indent=2)
-
     return kayit
 
 
 # -------------------------------------------------------
 # Pazaryeri → veri tipleri haritası
+# Kargo desi fiyatlari veritabaninda sabit tutuluyor,
+# disardan dosya yuklenmez.
 # -------------------------------------------------------
 MARKETPLACE_CONFIG = {
     "trendyol": {
         "label": "Trendyol",
         "veri_tipleri": [
-            {"key": "kargo_faturasi",      "label": "Kargo Faturası"},
-            {"key": "komisyon_faturasi",   "label": "Komisyon Faturası"},
-            {"key": "ceza_faturasi",       "label": "Ceza Faturası"},
-            {"key": "islem_bedelleri",     "label": "İşlem Bedelleri"},
-            {"key": "iptal_listesi",       "label": "İptal Listesi"},
-            {"key": "yurtdisi_operasyon",  "label": "Yurt Dışı Operasyon"},
-            {"key": "kargo_desi_fiyatlari","label": "Kargo Desi Fiyatları"},
+            {"key": "kargo_faturasi",     "label": "Kargo Faturasi"},
+            {"key": "komisyon_faturasi",  "label": "Komisyon Faturasi"},
+            {"key": "ceza_faturasi",      "label": "Ceza Faturasi"},
+            {"key": "islem_bedelleri",    "label": "Islem Bedelleri"},
+            {"key": "iptal_listesi",      "label": "Iptal Listesi"},
+            {"key": "yurtdisi_operasyon", "label": "Yurt Disi Operasyon"},
         ]
     },
     "amazon": {
         "label": "Amazon",
         "veri_tipleri": [
-            {"key": "islemler", "label": "İşlem Listesi"},
+            {"key": "islemler", "label": "Islem Listesi"},
         ]
     },
     "hepsiburada": {
         "label": "Hepsiburada",
         "veri_tipleri": [
-            {"key": "hakedis",              "label": "Hakediş Listesi"},
-            {"key": "kargo_desi_fiyatlari", "label": "Kargo Desi Fiyatları"},
+            {"key": "hakedis", "label": "Hakedis Listesi"},
         ]
     },
     "n11": {
         "label": "N11",
         "veri_tipleri": [
-            {"key": "kargo",                "label": "Kargo Listesi"},
-            {"key": "komisyon_faturasi",    "label": "Komisyon Faturası"},
-            {"key": "kargo_desi_fiyatlari", "label": "Kargo Desi Fiyatları"},
+            {"key": "kargo",             "label": "Kargo Listesi"},
+            {"key": "komisyon_faturasi", "label": "Komisyon Faturasi"},
         ]
     },
     "pazarama": {
         "label": "Pazarama",
         "veri_tipleri": [
-            {"key": "ceza",                 "label": "Ceza Listesi"},
-            {"key": "fatura_ozet",          "label": "Fatura Özeti"},
-            {"key": "kargo_detay",          "label": "Kargo Detay"},
-            {"key": "komisyon_detay",       "label": "Komisyon Detay"},
-            {"key": "kargo_desi_fiyatlari", "label": "Kargo Desi Fiyatları"},
+            # Tek dosyadan 4 sayfa otomatik okunur (import_tumu)
+            {"key": "komisyon_kargo", "label": "Pazarama Dosyasi"},
         ]
     },
     "flo": {
         "label": "Flo",
         "veri_tipleri": [
-            {"key": "fatura_detay",         "label": "Fatura Detay"},
-            {"key": "kargo_desi_fiyatlari", "label": "Kargo Desi Fiyatları"},
+            {"key": "fatura_detay", "label": "Fatura Detay"},
         ]
     },
     "lcw": {
         "label": "LCW",
         "veri_tipleri": [
-            {"key": "kargo_faturasi",       "label": "Kargo Faturası"},
-            {"key": "komisyon_faturasi",    "label": "Komisyon Faturası"},
-            {"key": "kargo_desi_fiyatlari", "label": "Kargo Desi Fiyatları"},
+            {"key": "kargo_faturasi",    "label": "Kargo Faturasi"},
+            {"key": "komisyon_faturasi", "label": "Komisyon Faturasi"},
         ]
     },
 }
 
 
 # -------------------------------------------------------
-# İmporter metodları haritası
+# Importer metodlari haritasi
 # -------------------------------------------------------
 def get_importer_method(marketplace, data_type):
-    """
-    Pazaryeri + veri tipi kombinasyonuna göre
-    ilgili importer metodunu döner.
-    """
     metodlar = {
         "trendyol": {
-            "kargo_faturasi":       TrendyolImporter().import_kargo_faturasi,
-            "komisyon_faturasi":    TrendyolImporter().import_komisyon_faturasi,
-            "ceza_faturasi":        TrendyolImporter().import_ceza_faturasi,
-            "islem_bedelleri":      TrendyolImporter().import_islem_bedelleri,
-            "iptal_listesi":        TrendyolImporter().import_iptal_listesi,
-            "yurtdisi_operasyon":   TrendyolImporter().import_yurtdisi_operasyon,
-            "kargo_desi_fiyatlari": TrendyolImporter().import_kargo_desi_fiyatlari,
+            "kargo_faturasi":     TrendyolImporter().import_kargo_faturasi,
+            "komisyon_faturasi":  TrendyolImporter().import_komisyon_faturasi,
+            "ceza_faturasi":      TrendyolImporter().import_ceza_faturasi,
+            "islem_bedelleri":    TrendyolImporter().import_islem_bedelleri,
+            "iptal_listesi":      TrendyolImporter().import_iptal_listesi,
+            "yurtdisi_operasyon": TrendyolImporter().import_yurtdisi_operasyon,
         },
         "amazon": {
             "islemler": AmazonImporter().import_islemler,
         },
         "hepsiburada": {
-            "hakedis":              HepsiburadaImporter().import_hakedis,
-            "kargo_desi_fiyatlari": HepsiburadaImporter().import_kargo_desi_fiyatlari,
+            "hakedis": HepsiburadaImporter().import_hakedis,
         },
         "n11": {
-            "kargo":                N11Importer().import_kargo,
-            "komisyon_faturasi":    N11Importer().import_komisyon_faturasi,
-            "kargo_desi_fiyatlari": N11Importer().import_kargo_desi_fiyatlari,
+            "kargo":             N11Importer().import_kargo,
+            "komisyon_faturasi": N11Importer().import_komisyon_faturasi,
         },
         "pazarama": {
-            "ceza":                 PazaramaImporter().import_ceza,
-            "fatura_ozet":          PazaramaImporter().import_fatura_ozet,
-            "kargo_detay":          PazaramaImporter().import_kargo_detay,
-            "komisyon_detay":       PazaramaImporter().import_komisyon_detay,
-            "kargo_desi_fiyatlari": PazaramaImporter().import_kargo_desi_fiyatlari,
+            # Tek dosyadan 4 sayfa otomatik okunur
+            "komisyon_kargo": PazaramaImporter().import_tumu,
         },
         "flo": {
-            "fatura_detay":         FloImporter().import_fatura_detay,
-            "kargo_desi_fiyatlari": FloImporter().import_kargo_desi_fiyatlari,
+            "fatura_detay": FloImporter().import_fatura_detay,
         },
         "lcw": {
-            "kargo_faturasi":       LcwImporter().import_kargo_faturasi,
-            "komisyon_faturasi":    LcwImporter().import_komisyon_faturasi,
-            "kargo_desi_fiyatlari": LcwImporter().import_kargo_desi_fiyatlari,
+            "kargo_faturasi":    LcwImporter().import_kargo_faturasi,
+            "komisyon_faturasi": LcwImporter().import_komisyon_faturasi,
         },
     }
-
     mkt = metodlar.get(marketplace)
     if not mkt:
         return None
@@ -174,7 +146,7 @@ def get_importer_method(marketplace, data_type):
 
 
 # -------------------------------------------------------
-# Endpoint: Sağlık kontrolü
+# Endpoint: Saglik kontrolu
 # -------------------------------------------------------
 @upload_bp.route("/health", methods=["GET"])
 def health():
@@ -190,56 +162,56 @@ def get_marketplaces():
 
 
 # -------------------------------------------------------
-# Endpoint: Dosya yükleme
+# Endpoint: Dosya yukleme
 # -------------------------------------------------------
 @upload_bp.route("/upload", methods=["POST"])
 def upload():
-    # Form alanlarını al
     marketplace = request.form.get("marketplace", "").lower().strip()
     data_type   = request.form.get("data_type", "").strip()
     dosya       = request.files.get("file")
 
-    # Validasyon
     if not dosya or dosya.filename == "":
-        return jsonify({"basarili": False, "hata": "Dosya seçilmedi."}), 400
+        return jsonify({"basarili": False, "hata": "Dosya secilmedi."}), 400
 
     if not marketplace or not data_type:
-        return jsonify({"basarili": False, "hata": "Pazaryeri veya veri türü belirtilmedi."}), 400
+        return jsonify({"basarili": False, "hata": "Pazaryeri veya veri turu belirtilmedi."}), 400
 
     if not dosya.filename.endswith((".xlsx", ".xls")):
-        return jsonify({"basarili": False, "hata": "Sadece .xlsx veya .xls dosyaları kabul edilir."}), 400
+        return jsonify({"basarili": False, "hata": "Sadece .xlsx veya .xls dosyalari kabul edilir."}), 400
 
-    # Dosyayı geçici olarak kaydet
     gecici_yol = os.path.join(current_app.config["UPLOAD_FOLDER"], dosya.filename)
     dosya.save(gecici_yol)
 
     try:
-        # İlgili importer metodunu bul ve çalıştır
         metod = get_importer_method(marketplace, data_type)
 
         if not metod:
             log_yaz(marketplace, data_type, dosya.filename, 0, "hata",
-                    f"Tanımsız kombinasyon: {marketplace}/{data_type}")
+                    f"Tanimsiz kombinasyon: {marketplace}/{data_type}")
             return jsonify({
                 "basarili": False,
-                "hata": f"Geçersiz kombinasyon: '{marketplace}' / '{data_type}'"
+                "hata": f"Gecersiz kombinasyon: '{marketplace}' / '{data_type}'"
             }), 400
 
-        # Aktarımı gerçekleştir — importer'ı satır sayısı döndürecek şekilde
-        # wrap ediyoruz (importer'lar void, df boyutunu buradan okuyacağız)
         import pandas as pd
-        from importers.base_importer import clean_column_name
 
-        df = pd.read_excel(gecici_yol)
-        satir_sayisi = len(df)
+        # Pazarama komisyon_kargo icin satir sayisini tum sayfalardan topla
+        if marketplace == "pazarama" and data_type == "komisyon_kargo":
+            xl = pd.ExcelFile(gecici_yol)
+            satir_sayisi = sum(
+                len(pd.read_excel(gecici_yol, sheet_name=s))
+                for s in xl.sheet_names
+            )
+        else:
+            satir_sayisi = len(pd.read_excel(gecici_yol))
 
-        metod(gecici_yol)  # Asıl yükleme
+        metod(gecici_yol)
 
         log_kayit = log_yaz(marketplace, data_type, dosya.filename, satir_sayisi, "basarili")
 
         return jsonify({
             "basarili": True,
-            "mesaj": f"{satir_sayisi} satır başarıyla yüklendi.",
+            "mesaj": f"{satir_sayisi} satir basariyla yuklendi.",
             "log": log_kayit
         })
 
@@ -253,13 +225,17 @@ def upload():
         }), 500
 
     finally:
-        # Geçici dosyayı temizle
-        if os.path.exists(gecici_yol):
-            os.remove(gecici_yol)
+        import time
+        time.sleep(0.3)
+        try:
+            if os.path.exists(gecici_yol):
+                os.remove(gecici_yol)
+        except PermissionError:
+            pass
 
 
 # -------------------------------------------------------
-# Endpoint: Log geçmişi
+# Endpoint: Log gecmisi
 # -------------------------------------------------------
 @upload_bp.route("/logs", methods=["GET"])
 def get_logs():
