@@ -72,8 +72,12 @@ def _sync_pazaryeri(cursor, pazaryeri: str) -> int:
         return _sync_lcw(cursor)
     elif pz == "hepsiburada":
         return _sync_hepsiburada(cursor)
+    elif pz == "flo":
+        return _sync_flo(cursor)
+    elif pz == "amazon":
+        return _sync_amazon(cursor)
     else:
-        print(f"  [{pazaryeri}] henuz desteklenmiyor, atlanıyor.")
+        print(f"  [{pazaryeri}] tanimli degil, atlanıyor.")
         return 0
 
 
@@ -258,6 +262,81 @@ def _sync_lcw(cursor) -> int:
         n += 1
     return n
 
+def _sync_flo(cursor) -> int:
+    """flo_fatura_detay'dan siparisler'e upsert."""
+    cursor.execute("""
+        SELECT
+            siparis_no,
+            MAX(fatura_tarihi)  AS fatura_tarihi,
+            SUM(miktar)         AS toplam_miktar,
+            MAX(islem_tipi)     AS islem_tipi
+        FROM flo_fatura_detay
+        WHERE siparis_no IS NOT NULL AND siparis_no != ''
+        GROUP BY siparis_no
+    """)
+    rows = cursor.fetchall()
+    n = 0
+    for row in rows:
+        siparis_no, fatura_tarihi, toplam_miktar, islem_tipi = row
+        durum = "iade" if islem_tipi and "iade" in str(islem_tipi).lower() else "teslim_edildi"
+        _upsert_siparis(cursor, {
+            "siparis_no":           siparis_no,
+            "pazaryeri_siparis_no": siparis_no,
+            "pazaryeri":            "Flo",
+            "barkod":               "",
+            "urun_adi":             None,
+            "marka":                None,
+            "kategori":             None,
+            "adet":                 1,
+            "birim_fiyat":          toplam_miktar or 0,
+            "kdv_orani":            20,
+            "toplam_tutar":         toplam_miktar or 0,
+            "pazaryeri_fiyati":     toplam_miktar or 0,
+            "durum":                durum,
+            "siparis_tarihi":       fatura_tarihi or datetime.now(),
+        })
+        n += 1
+    return n
+
+
+def _sync_amazon(cursor) -> int:
+    """amazon_islemler'den siparisler'e upsert."""
+    cursor.execute("""
+        SELECT
+            siparis_no,
+            MAX(tarih)                     AS siparis_tarihi,
+            MAX(toplam_urun_fiyatlari)     AS urun_fiyati,
+            MAX(toplam_try)                AS toplam_tutar,
+            MAX(islem_tipi)                AS islem_tipi,
+            MAX(urun_detaylari)            AS urun_adi
+        FROM amazon_islemler
+        WHERE siparis_no IS NOT NULL AND siparis_no != ''
+        GROUP BY siparis_no
+    """)
+    rows = cursor.fetchall()
+    n = 0
+    for row in rows:
+        siparis_no, sip_tarihi, urun_fiyati, toplam_tutar, islem_tipi, urun_adi = row
+        durum = "iade" if islem_tipi and "iade" in str(islem_tipi).lower() else "teslim_edildi"
+        _upsert_siparis(cursor, {
+            "siparis_no":           siparis_no,
+            "pazaryeri_siparis_no": siparis_no,
+            "pazaryeri":            "Amazon",
+            "barkod":               "",
+            "urun_adi":             urun_adi,
+            "marka":                None,
+            "kategori":             None,
+            "adet":                 1,
+            "birim_fiyat":          urun_fiyati or toplam_tutar or 0,
+            "kdv_orani":            20,
+            "toplam_tutar":         toplam_tutar or 0,
+            "pazaryeri_fiyati":     toplam_tutar or 0,
+            "durum":                durum,
+            "siparis_tarihi":       sip_tarihi or datetime.now(),
+        })
+        n += 1
+    return n
+
 
 def _sync_hepsiburada(cursor) -> int:
     """hepsiburada_hakedis'den siparisler'e upsert."""
@@ -307,18 +386,18 @@ def karlilik_ozeti_hesapla(pazaryeri: str = None) -> dict:
     """
     siparisler tablosundaki her siparis icin:
     - Fatura tablolarından komisyon ve kargo değerlerini çeker
-    - Komisyon dogrulugunu hesaplar (beklenen vs faturalanan)
     - karlilik_ozeti tablosuna yazar
     """
     from mutabakat import gerceklesen_degerler_hesapla
 
-    conn   = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    ozet   = {"islem": 0, "hata": 0}
+    conn        = get_db_connection()
+    dict_cursor = conn.cursor(dictionary=True)   # siparisler okuma için
+    sub_cursor  = conn.cursor()                  # fatura sorguları için (row[0] erişimi)
+    ozet        = {"islem": 0, "hata": 0}
 
     try:
         if pazaryeri:
-            cursor.execute("""
+            dict_cursor.execute("""
                 SELECT id, siparis_no, pazaryeri_siparis_no, pazaryeri,
                        barkod, urun_adi, durum, siparis_tarihi,
                        toplam_tutar, birim_fiyat, adet, kdv_orani
@@ -326,34 +405,32 @@ def karlilik_ozeti_hesapla(pazaryeri: str = None) -> dict:
                 WHERE pazaryeri = %s
             """, (pazaryeri,))
         else:
-            cursor.execute("""
+            dict_cursor.execute("""
                 SELECT id, siparis_no, pazaryeri_siparis_no, pazaryeri,
                        barkod, urun_adi, durum, siparis_tarihi,
                        toplam_tutar, birim_fiyat, adet, kdv_orani
                 FROM siparisler
             """)
 
-        siparisler = cursor.fetchall()
+        siparisler = dict_cursor.fetchall()
 
         for s in siparisler:
             try:
-                # Fatura tablolarından gerçekleşen değerleri çek
+                # Fatura tablolarından gerçekleşen değerleri çek (normal cursor ile)
                 gercek = gerceklesen_degerler_hesapla(
-                    cursor,
+                    sub_cursor,
                     pazaryeri_siparis_no = s["pazaryeri_siparis_no"],
                     pazaryeri            = s["pazaryeri"],
                 )
 
-                # Beklenen komisyon: Trendyol=brüt, diğerleri=indirimli
+                # Beklenen komisyon tabanı
                 komisyon_taban = komisyon_taban_hesapla(
                     pazaryeri       = s["pazaryeri"],
-                    indirimli_fiyat = Decimal(str(s["birim_fiyat"])),
-                    toplam_tutar    = Decimal(str(s["toplam_tutar"])),
+                    indirimli_fiyat = Decimal(str(s["birim_fiyat"] or 0)),
+                    toplam_tutar    = Decimal(str(s["toplam_tutar"] or 0)),
                 )
 
-                iade_mi = s["durum"] == "iade"
-
-                cursor.execute("""
+                sub_cursor.execute("""
                     INSERT INTO karlilik_ozeti (
                         siparis_id, siparis_no, pazaryeri_siparis_no,
                         pazaryeri, barkod, urun_adi,
@@ -391,15 +468,15 @@ def karlilik_ozeti_hesapla(pazaryeri: str = None) -> dict:
                     "siparis_no":                  s["siparis_no"],
                     "pazaryeri_siparis_no":         s["pazaryeri_siparis_no"],
                     "pazaryeri":                   s["pazaryeri"],
-                    "barkod":                      s["barkod"],
+                    "barkod":                      s["barkod"] or "",
                     "urun_adi":                    s["urun_adi"],
                     "siparis_durumu":              s["durum"],
                     "siparis_tarihi":              s["siparis_tarihi"],
-                    "siparis_toplam_tutari":        s["toplam_tutar"],
-                    "pazaryeri_fiyati":             s["toplam_tutar"],
+                    "siparis_toplam_tutari":        s["toplam_tutar"] or 0,
+                    "pazaryeri_fiyati":             s["toplam_tutar"] or 0,
                     "faturalanan_komisyon_tutari":  gercek["faturalanan_komisyon"],
-                    "faturalanan_desi_tutari":      gercek["faturalanan_satis_kargosu"]
-                                                  + gercek["faturalanan_iade_kargosu"],
+                    "faturalanan_desi_tutari":      (gercek["faturalanan_satis_kargosu"]
+                                                    + gercek["faturalanan_iade_kargosu"]),
                     "faturalanan_desi":             gercek["faturalanan_desi"],
                     "satis_kargosu":               gercek["faturalanan_satis_kargosu"],
                     "iade_kargosu":                gercek["faturalanan_iade_kargosu"],
@@ -408,16 +485,20 @@ def karlilik_ozeti_hesapla(pazaryeri: str = None) -> dict:
 
             except Exception as e:
                 ozet["hata"] += 1
+                import traceback
                 print(f"  [HATA] {s['pazaryeri_siparis_no']}: {e}")
+                traceback.print_exc()
 
         conn.commit()
 
     finally:
-        cursor.close()
+        dict_cursor.close()
+        sub_cursor.close()
         conn.close()
 
     print(f"\n[PIPELINE] karlilik_ozeti guncellendi: {ozet['islem']} kayit, {ozet['hata']} hata")
     return ozet
+
 
 
 # ============================================================
@@ -455,8 +536,5 @@ def tam_pipeline_calistir(pazaryeri: str = None) -> dict:
 
 
 if __name__ == "__main__":
-    # Tek pazaryeri
-    tam_pipeline_calistir("Trendyol")
-
     # Tum pazaryerler
-    # tam_pipeline_calistir()
+    tam_pipeline_calistir()

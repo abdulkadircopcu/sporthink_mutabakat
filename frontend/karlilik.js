@@ -37,17 +37,25 @@ async function loadListe(filters = {}, sayfa = 1) {
     document.getElementById("tableCount").textContent = `Toplam: ${d.toplam} siparis`;
 
     if (!d.veriler || d.veriler.length === 0) {
-      body.innerHTML = `<tr><td colspan="13" class="table-empty">Veri bulunamadi.</td></tr>`;
+      body.innerHTML = `<tr><td colspan="12" class="table-empty">Veri bulunamadi.</td></tr>`;
       renderPagination(0, sayfa);
       return;
     }
 
     body.innerHTML = d.veriler.map(row => {
-      const isZarar = row.zarar_mi == 1;
-      const marjColor = isZarar ? "color:var(--red)" : "color:var(--green)";
-      const durumBadge = isZarar
-        ? `<span class="badge badge-red">Zarar</span>`
-        : `<span class="badge badge-green">Karli</span>`;
+      const netKar      = row.net_kar;
+      const maliyet     = row.urun_maliyeti;
+      const hesaplandi  = maliyet !== null && maliyet !== 0 && netKar !== null;
+      const isZarar     = hesaplandi && netKar < 0;
+      const isKarli     = hesaplandi && netKar >= 0;
+      const marjColor   = isZarar ? "color:var(--red)" : isKarli ? "color:var(--green)" : "color:var(--muted,#888)";
+
+      const durumBadge = !hesaplandi
+        ? `<span class="badge badge-muted">Hesaplanmadı</span>`
+        : isZarar
+          ? `<span class="badge badge-red">Zarar</span>`
+          : `<span class="badge badge-green">Karlı</span>`;
+
       const mutBadge = row.mutabakat_durumu
         ? `<span class="badge badge-${mutabakatRenk(row.mutabakat_durumu)}">${row.mutabakat_durumu}</span>`
         : "";
@@ -57,21 +65,20 @@ async function loadListe(filters = {}, sayfa = 1) {
           <td>${MP_EMOJIS[row.pazaryeri] || ""} ${row.pazaryeri}</td>
           <td class="mono">${row.pazaryeri_siparis_no || row.siparis_no}</td>
           <td class="urun-adi" title="${row.urun_adi || ""}">${truncate(row.urun_adi, 30)}</td>
-          <td style="text-align:center">${row.satis_adeti ?? "—"}</td>
           <td>${fmtCur(row.satis_tutari)}</td>
-          <td>${fmtCur(row.urun_maliyeti)}</td>
+          <td>${maliyet ? fmtCur(maliyet) : '<span style="color:#888">—</span>'}</td>
           <td>${fmtCur(row.komisyon)}</td>
           <td>${fmtCur(row.kargo)}</td>
           <td>${fmtCur(row.net_gelir)}</td>
-          <td style="${marjColor};font-weight:600">${fmtCur(row.net_kar)}</td>
-          <td style="${marjColor}">${fmt(row.kar_marji)}%</td>
+          <td style="${marjColor};font-weight:600">${hesaplandi ? fmtCur(netKar) : '<span style="color:#888">—</span>'}</td>
+          <td style="${marjColor}">${hesaplandi ? fmt(row.kar_marji)+"%" : "—"}</td>
           <td>${durumBadge}</td>
         </tr>`;
     }).join("");
 
     renderPagination(d.toplam, sayfa);
   } catch(e) {
-    body.innerHTML = `<tr><td colspan="13" class="table-empty" style="color:var(--red)">Hata: ${e.message}</td></tr>`;
+    body.innerHTML = `<tr><td colspan="12" class="table-empty" style="color:var(--red)">Hata: ${e.message}</td></tr>`;
   }
 }
 
