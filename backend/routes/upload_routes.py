@@ -164,6 +164,17 @@ def get_marketplaces():
 # -------------------------------------------------------
 # Endpoint: Dosya yukleme
 # -------------------------------------------------------
+# Pazaryeri key → Pipeline pazaryeri ismi eslesimi
+PAZARYERI_MAP = {
+    "trendyol":    "Trendyol",
+    "hepsiburada": "Hepsiburada",
+    "n11":         "N11",
+    "pazarama":    "Pazarama",
+    "flo":         "Flo",
+    "lcw":         "LCW",
+    "amazon":      "Amazon",
+}
+
 @upload_bp.route("/upload", methods=["POST"])
 def upload():
     marketplace = request.form.get("marketplace", "").lower().strip()
@@ -209,9 +220,22 @@ def upload():
 
         log_kayit = log_yaz(marketplace, data_type, dosya.filename, satir_sayisi, "basarili")
 
+        # Pipeline'i arka planda calistir (kullanicinin beklemesine gerek yok)
+        import threading
+        pz_adi = PAZARYERI_MAP.get(marketplace)
+        if pz_adi:
+            def _pipeline_bg():
+                try:
+                    from pipeline import tam_pipeline_calistir
+                    tam_pipeline_calistir(pz_adi)
+                    print(f"[AUTO-PIPELINE] {pz_adi} tamamlandi.")
+                except Exception as pe:
+                    print(f"[AUTO-PIPELINE] HATA ({pz_adi}): {pe}")
+            threading.Thread(target=_pipeline_bg, daemon=True).start()
+
         return jsonify({
             "basarili": True,
-            "mesaj": f"{satir_sayisi} satir basariyla yuklendi.",
+            "mesaj": f"{satir_sayisi} satir basariyla yuklendi. Karlilik ozeti guncelleniyor...",
             "log": log_kayit
         })
 
