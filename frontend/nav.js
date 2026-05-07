@@ -1,8 +1,8 @@
 // Ortak navigasyon - tüm sayfalarda kullanılır
 const NAV_ITEMS = [
-  { href: "/",              label: "Veri Yukleme",     icon: "⬆" },
-  { href: "/karlilik.html", label: "Karlilik Analizi", icon: "📊" },
-  { href: "/mutabakat.html",label: "Mutabakat",        icon: "✅" },
+  { href: "/",              label: "Veri Yükleme",      icon: "⬆" },
+  { href: "/karlilik.html", label: "Karlılık Analizi",  icon: "📊" },
+  { href: "/mutabakat.html",label: "Mutabakat",         icon: "✅" },
 ];
 
 function renderNav() {

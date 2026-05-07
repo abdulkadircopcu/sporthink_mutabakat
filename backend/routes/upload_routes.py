@@ -54,54 +54,54 @@ MARKETPLACE_CONFIG = {
     "trendyol": {
         "label": "Trendyol",
         "veri_tipleri": [
-            {"key": "kargo_faturasi",     "label": "Kargo Faturasi"},
-            {"key": "komisyon_faturasi",  "label": "Komisyon Faturasi"},
-            {"key": "ceza_faturasi",      "label": "Ceza Faturasi"},
-            {"key": "islem_bedelleri",    "label": "Islem Bedelleri"},
-            {"key": "iptal_listesi",      "label": "Iptal Listesi"},
-            {"key": "yurtdisi_operasyon", "label": "Yurt Disi Operasyon"},
+            {"key": "kargo_faturasi",     "label": "Kargo Faturası"},
+            {"key": "komisyon_faturasi",  "label": "Komisyon Faturası"},
+            {"key": "ceza_faturasi",      "label": "Ceza Faturası"},
+            {"key": "islem_bedelleri",    "label": "İşlem Bedelleri"},
+            {"key": "iptal_listesi",      "label": "İptal Listesi"},
+            {"key": "yurtdisi_operasyon", "label": "Yurt Dışı Operasyon"},
         ]
     },
     "amazon": {
         "label": "Amazon",
         "veri_tipleri": [
-            {"key": "islemler", "label": "Islem Listesi"},
+            {"key": "islemler", "label": "İşlem Listesi"},
         ]
     },
     "hepsiburada": {
         "label": "Hepsiburada",
         "veri_tipleri": [
-            {"key": "hakedis", "label": "Hakedis Listesi"},
+            {"key": "hakedis", "label": "Hakediş Listesi"},
         ]
     },
     "n11": {
         "label": "N11",
         "veri_tipleri": [
             {"key": "kargo",             "label": "Kargo Listesi"},
-            {"key": "komisyon_faturasi", "label": "Komisyon Faturasi"},
+            {"key": "komisyon_faturasi", "label": "Komisyon Faturası"},
         ]
     },
     "pazarama": {
         "label": "Pazarama",
         "veri_tipleri": [
-            # Tek dosyadan 4 sayfa otomatik okunur (import_tumu)
-            {"key": "komisyon_kargo", "label": "Pazarama Dosyasi"},
+            {"key": "komisyon_kargo", "label": "Pazarama Dosyası"},
         ]
     },
     "flo": {
         "label": "Flo",
         "veri_tipleri": [
-            {"key": "fatura_detay", "label": "Fatura Detay"},
+            {"key": "fatura_detay", "label": "Fatura Detayı"},
         ]
     },
     "lcw": {
         "label": "LCW",
         "veri_tipleri": [
-            {"key": "kargo_faturasi",    "label": "Kargo Faturasi"},
-            {"key": "komisyon_faturasi", "label": "Komisyon Faturasi"},
+            {"key": "kargo_faturasi",    "label": "Kargo Faturası"},
+            {"key": "komisyon_faturasi", "label": "Komisyon Faturası"},
         ]
     },
 }
+
 
 
 # -------------------------------------------------------
