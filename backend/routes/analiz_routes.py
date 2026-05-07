@@ -22,17 +22,11 @@ def get_conn():
 @analiz_bp.route("/karlilik/ozet", methods=["GET"])
 def karlilik_ozet():
     pazaryeri = request.args.get("pazaryeri")
-    baslangic = request.args.get("baslangic")
-    bitis     = request.args.get("bitis")
 
     where  = ["1=1"]
     params = []
     if pazaryeri:
         where.append("pazaryeri = %s"); params.append(pazaryeri)
-    if baslangic:
-        where.append("siparis_tarihi >= %s"); params.append(baslangic)
-    if bitis:
-        where.append("siparis_tarihi <= %s"); params.append(bitis)
 
     sql = f"""
         SELECT
@@ -63,8 +57,6 @@ def karlilik_ozet():
 @analiz_bp.route("/karlilik/liste", methods=["GET"])
 def karlilik_liste():
     pazaryeri = request.args.get("pazaryeri")
-    baslangic = request.args.get("baslangic")
-    bitis     = request.args.get("bitis")
     durum     = request.args.get("durum")       # zarar / karli / hepsi
     sayfa     = int(request.args.get("sayfa", 1))
     limit     = int(request.args.get("limit", 50))
@@ -74,10 +66,6 @@ def karlilik_liste():
     params = []
     if pazaryeri:
         where.append("pazaryeri = %s"); params.append(pazaryeri)
-    if baslangic:
-        where.append("siparis_tarihi >= %s"); params.append(baslangic)
-    if bitis:
-        where.append("siparis_tarihi <= %s"); params.append(bitis)
     if durum == "zarar":
         where.append("zarar_mi = 1")
     elif durum == "karli":

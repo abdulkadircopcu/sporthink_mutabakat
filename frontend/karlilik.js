@@ -105,8 +105,6 @@ function goPage(p) {
 function getFilters() {
   return {
     pazaryeri: document.getElementById("filterPazaryeri").value,
-    baslangic: document.getElementById("filterBaslangic").value,
-    bitis:     document.getElementById("filterBitis").value,
     durum:     document.getElementById("filterDurum").value,
   };
 }
