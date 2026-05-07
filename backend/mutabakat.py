@@ -1,6 +1,6 @@
 # ============================================================
 # E-Ticaret Dijital Mutabakat ve Karlılık Analizi Platformu
-# Mutabakat Motoru (Reconciliation Engine) v1.0
+# Mutabakat Motoru v2.0
 # Sporthink E-Ticaret Departmanı
 # ============================================================
 
@@ -9,248 +9,242 @@ from decimal import Decimal
 from datetime import datetime
 from enum import Enum
 
+from karlilik_hesaplama import get_db_connection, siparis_desi_hesapla
+
 
 # ------------------------------------------------------------
 # Sabitler
 # ------------------------------------------------------------
 
 class ReconciliationStatus(str, Enum):
-    ESLESDI          = "eslesdi"
-    FARK_VAR         = "fark_var"
-    MANUEL_INCELEME  = "manuel_inceleme"
-    BEKLEMEDE        = "beklemede"
+    ESLESDI         = "eslesdi"
+    FARK_VAR        = "fark_var"
+    MANUEL_INCELEME = "manuel_inceleme"
+    BEKLEMEDE       = "beklemede"
 
 class AlertLevel(str, Enum):
-    NORMAL   = "normal"    # Fark yok
-    DUSUK    = "dusuk"     # Biz fazla aldık (pazaryeri lehimize hata yaptı)
-    KRITIK   = "kritik"    # Biz az aldık (biz zarar ettik) → uyarı!
+    NORMAL = "normal"
+    DUSUK  = "dusuk"
+    KRITIK = "kritik"
 
-
-# ------------------------------------------------------------
-# Veritabanı Bağlantısı
-# ------------------------------------------------------------
-
-def get_db_connection():
-    """
-    MySQL bağlantısı döner.
-    Kullanım: conn = get_db_connection()
-    """
-    return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",          # WAMP varsayılan şifresi boş
-        database="sporthink_mutabakat",
-        charset="utf8mb4"
-    )
-
-
-# ------------------------------------------------------------
-# Yardımcı Fonksiyonlar
-# ------------------------------------------------------------
 
 def hesapla_fark(beklenen: Decimal, gerceklesen: Decimal) -> Decimal:
-    """
-    Farkı hesaplar.
-    Pozitif → biz fazla aldık (iyi)
-    Negatif → biz az aldık (kötü, uyarı verilecek)
-    """
+    # Pozitif → fazla geldik (iyi), Negatif → eksik geldik (kötü)
     return gerceklesen - beklenen
 
-
 def belirle_alert_seviyesi(fark: Decimal) -> AlertLevel:
-    """
-    Farka göre uyarı seviyesini belirler.
-
-    Karar mantığı:
-      fark == 0   → NORMAL   (tamam, sıkıntı yok)
-      fark > 0    → DUSUK    (pazaryeri fazla ödedi, bizim lehimize)
-      fark < 0    → KRITIK   (pazaryeri az ödedi, biz zarar ettik → uyarı!)
-    """
     if fark == Decimal("0"):
         return AlertLevel.NORMAL
     elif fark > Decimal("0"):
         return AlertLevel.DUSUK
-    else:
-        return AlertLevel.KRITIK
-
+    return AlertLevel.KRITIK
 
 def belirle_reconciliation_status(fark: Decimal, eslesme_bulundu: bool) -> ReconciliationStatus:
-    """
-    Mutabakat durumunu belirler.
-    """
     if not eslesme_bulundu:
         return ReconciliationStatus.MANUEL_INCELEME
     elif fark == Decimal("0"):
         return ReconciliationStatus.ESLESDI
-    else:
-        return ReconciliationStatus.FARK_VAR
+    return ReconciliationStatus.FARK_VAR
 
 
 # ------------------------------------------------------------
-# Aşama 1 — Sipariş Eşleştirme
+# Desi Mutabakatı
+#
+# Kural: Hesaplanan sepet desisi (SUM adet×tahmini_desi)
+#        ile pazaryerinin faturasındaki desi karşılaştırılır.
 # ------------------------------------------------------------
 
-def siparis_eslestir(cursor, marketplace_order_id: str, marketplace: str) -> dict | None:
-    """
-    Pazaryeri sipariş numarasına göre orders tablosundan siparişi bulur.
+def desi_mutabakat(cursor, siparis_id: int, faturalanan_desi: int) -> dict:
+    hesaplanan_desi = siparis_desi_hesapla(cursor, siparis_id)
+    fark = faturalanan_desi - hesaplanan_desi
+    return {
+        "hesaplanan_desi":  hesaplanan_desi,
+        "faturalanan_desi": faturalanan_desi,
+        "desi_farki":       fark,
+        "desi_eslesdi":     fark == 0,
+        "uyari": f"[DESI_FARK] Fark: {fark:+d} desi" if fark != 0 else "[OK] Desi eslesti",
+    }
 
-    Önce direkt eşleşme dener.
-    Bulamazsa None döner → manuel inceleme kuyruğuna gider.
-    """
 
-    # Direkt eşleştirme: sipariş numarası tam eşleşiyor mu?
+# ------------------------------------------------------------
+# Sipariş Eşleştirme
+# Not: Barkod (Hitit) eşleştirmesi ileride eklenecek.
+# ------------------------------------------------------------
+
+def siparis_eslestir(cursor, pazaryeri_siparis_no: str, pazaryeri: str) -> dict | None:
     cursor.execute("""
-        SELECT id, order_id, marketplace, total_amount, status
-        FROM orders
-        WHERE marketplace_order_id = %s AND marketplace = %s
+        SELECT id, siparis_no, pazaryeri, toplam_tutar, durum, barkod
+        FROM siparisler
+        WHERE pazaryeri_siparis_no = %s AND pazaryeri = %s
         LIMIT 1
-    """, (marketplace_order_id, marketplace))
-
-    sonuc = cursor.fetchone()
-
-    if sonuc:
+    """, (pazaryeri_siparis_no, pazaryeri))
+    row = cursor.fetchone()
+    if row:
         return {
-            "id": sonuc[0],
-            "order_id": sonuc[1],
-            "marketplace": sonuc[2],
-            "total_amount": Decimal(str(sonuc[3])),
-            "status": sonuc[4],
-            "eslesme_yontemi": "direkt"
+            "id":               row[0],
+            "siparis_no":       row[1],
+            "pazaryeri":        row[2],
+            "toplam_tutar":     Decimal(str(row[3])),
+            "durum":            row[4],
+            "barkod":           row[5],
+            "eslesme_yontemi":  "siparis_no",
         }
-
-    # Eşleşme bulunamadı
     return None
 
 
 # ------------------------------------------------------------
-# Aşama 2 — Beklenen Ödeme Hesaplama
+# Gerçekleşen Değerleri Pazaryeri Faturalarından Çek
 # ------------------------------------------------------------
 
-def beklenen_odeme_hesapla(cursor, order_id: int) -> dict:
+def gerceklesen_degerler_hesapla(
+    cursor, pazaryeri_siparis_no: str, pazaryeri: str
+) -> dict:
     """
-    Bir sipariş için beklenen (hesaplanan) ödeme tutarlarını döner.
-    order_items tablosundaki hesaplanmış değerleri toplar.
+    Pazaryerinin Excel'den import edilmiş fatura tablolarından
+    komisyon, satış kargosu, iade kargosu ve desiyi toplar.
     """
-
-    cursor.execute("""
-        SELECT
-            COALESCE(SUM(calc_sale_commission), 0)   AS komisyon,
-            COALESCE(SUM(calc_return_commission), 0) AS iade_komisyon,
-            COALESCE(SUM(calc_cargo_amount), 0)      AS kargo,
-            COALESCE(SUM(net_revenue), 0)            AS net_gelir
-        FROM order_items
-        WHERE order_id = %s
-    """, (order_id,))
-
-    row = cursor.fetchone()
-
-    return {
-        "beklenen_komisyon":       Decimal(str(row[0])),
-        "beklenen_iade_komisyon":  Decimal(str(row[1])),
-        "beklenen_kargo":          Decimal(str(row[2])),
-        "beklenen_net_gelir":      Decimal(str(row[3])),
-        # Beklenen toplam ödeme = net gelir - komisyon - kargo
-        "beklenen_odeme": (
-            Decimal(str(row[3]))
-            - Decimal(str(row[0]))
-            + Decimal(str(row[1]))   # iade komisyonu gelir olarak eklenir
-            - Decimal(str(row[2]))
-        )
+    r = {
+        "faturalanan_komisyon":      Decimal("0"),
+        "faturalanan_satis_kargosu": Decimal("0"),
+        "faturalanan_iade_kargosu":  Decimal("0"),
+        "faturalanan_desi":          0,
     }
+    pz = pazaryeri.lower()
+
+    if pz == "trendyol":
+        # Komisyon
+        cursor.execute("""
+            SELECT COALESCE(SUM(trendyol_hakedis), 0)
+            FROM trendyol_komisyon_faturalari
+            WHERE siparis_no = %s
+        """, (pazaryeri_siparis_no,))
+        row = cursor.fetchone()
+        r["faturalanan_komisyon"] = Decimal(str(row[0]))
+
+        # Kargo + desi
+        cursor.execute("""
+            SELECT gonderi_iade, COALESCE(SUM(gonderi_ucreti), 0), COALESCE(MAX(desi), 0)
+            FROM trendyol_kargo_faturalari
+            WHERE siparis_no = %s
+            GROUP BY gonderi_iade
+        """, (pazaryeri_siparis_no,))
+        for gonderi_iade, tutar, desi in cursor.fetchall():
+            if gonderi_iade and "iade" in str(gonderi_iade).lower():
+                r["faturalanan_iade_kargosu"] += Decimal(str(tutar))
+            else:
+                r["faturalanan_satis_kargosu"] += Decimal(str(tutar))
+            r["faturalanan_desi"] = max(r["faturalanan_desi"], int(desi or 0))
+
+    elif pz == "pazarama":
+        # Komisyon
+        cursor.execute("""
+            SELECT COALESCE(SUM(satici_komisyon_tutari), 0)
+            FROM pazarama_komisyon_detay
+            WHERE siparis_no = %s
+        """, (pazaryeri_siparis_no,))
+        row = cursor.fetchone()
+        r["faturalanan_komisyon"] = Decimal(str(row[0]))
+
+        # Kargo + desi
+        cursor.execute("""
+            SELECT siparis_durumu, COALESCE(SUM(satici_borcu), 0), COALESCE(MAX(desi), 0)
+            FROM pazarama_kargo_detay
+            WHERE siparis_no = %s
+            GROUP BY siparis_durumu
+        """, (pazaryeri_siparis_no,))
+        for durum, tutar, desi in cursor.fetchall():
+            if durum and "iade" in str(durum).lower():
+                r["faturalanan_iade_kargosu"] += Decimal(str(tutar))
+            else:
+                r["faturalanan_satis_kargosu"] += Decimal(str(tutar))
+            r["faturalanan_desi"] = max(r["faturalanan_desi"], int(desi or 0))
+
+    elif pz == "n11":
+        cursor.execute("""
+            SELECT COALESCE(SUM(komisyon_bedeli), 0)
+            FROM n11_komisyon_faturalari
+            WHERE siparis_no = %s
+        """, (pazaryeri_siparis_no,))
+        row = cursor.fetchone()
+        r["faturalanan_komisyon"] = Decimal(str(row[0]))
+
+    elif pz == "lcw":
+        cursor.execute("""
+            SELECT COALESCE(SUM(lcw_komisyon_hakedis), 0)
+            FROM lcw_komisyon_faturalari
+            WHERE siparis_no = %s
+        """, (pazaryeri_siparis_no,))
+        row = cursor.fetchone()
+        r["faturalanan_komisyon"] = Decimal(str(row[0]))
+
+        cursor.execute("""
+            SELECT islem_tipi, COALESCE(SUM(lcw_kargo_hakedis), 0), COALESCE(MAX(desi), 0)
+            FROM lcw_kargo_faturalari
+            WHERE siparis_no = %s
+            GROUP BY islem_tipi
+        """, (pazaryeri_siparis_no,))
+        for islem_tipi, tutar, desi in cursor.fetchall():
+            if islem_tipi and "iade" in str(islem_tipi).lower():
+                r["faturalanan_iade_kargosu"] += Decimal(str(tutar))
+            else:
+                r["faturalanan_satis_kargosu"] += Decimal(str(tutar))
+            r["faturalanan_desi"] = max(r["faturalanan_desi"], int(desi or 0))
+
+    elif pz == "hepsiburada":
+        cursor.execute("""
+            SELECT COALESCE(SUM(CASE WHEN kayit_turu = 'Gider' THEN tutar ELSE 0 END), 0)
+            FROM hepsiburada_hakedis
+            WHERE siparis_no = %s AND kayit_sinifi LIKE '%komisyon%'
+        """, (pazaryeri_siparis_no,))
+        row = cursor.fetchone()
+        r["faturalanan_komisyon"] = Decimal(str(row[0]))
+
+    return r
 
 
 # ------------------------------------------------------------
-# Aşama 3 — Gerçekleşen Ödeme Hesaplama
+# Mutabakat Kaydını Kaydet
 # ------------------------------------------------------------
 
-def gerceklesen_odeme_hesapla(cursor, order_id: int, marketplace: str) -> dict:
-    """
-    marketplace_invoices tablosundan gerçekleşen ödeme tutarlarını toplar.
-    direction = 'gider' → negatif, 'gelir' → pozitif olarak işlenir.
-    """
+def mutabakat_kaydet(
+    cursor,
+    siparis_id: int,
+    pazaryeri: str,
+    beklenen_komisyon: Decimal,
+    gerceklesen: dict,
+    desi_sonuc: dict,
+    durum: ReconciliationStatus,
+) -> None:
+    komisyon_farki = hesapla_fark(beklenen_komisyon, gerceklesen["faturalanan_komisyon"])
+    fark_var = komisyon_farki != Decimal("0") or not desi_sonuc["desi_eslesdi"]
 
     cursor.execute("""
-        SELECT
-            item_type,
-            SUM(CASE WHEN direction = 'gelir' THEN amount ELSE -amount END) AS tutar
-        FROM marketplace_invoices
-        WHERE order_id = %s AND marketplace = %s
-        GROUP BY item_type
-    """, (order_id, marketplace))
-
-    rows = cursor.fetchall()
-
-    # Kalem tiplerini grupla
-    komisyon      = Decimal("0")
-    iade_komisyon = Decimal("0")
-    kargo         = Decimal("0")
-    diger         = Decimal("0")
-
-    for item_type, tutar in rows:
-        tutar = Decimal(str(tutar))
-        item_type_lower = item_type.lower()
-
-        if "iade komisyon" in item_type_lower:
-            iade_komisyon += tutar
-        elif "komisyon" in item_type_lower:
-            komisyon += tutar
-        elif "kargo" in item_type_lower:
-            kargo += tutar
-        else:
-            diger += tutar
-
-    gerceklesen_odeme = komisyon + iade_komisyon + kargo + diger
-
-    return {
-        "gerceklesen_komisyon":       komisyon,
-        "gerceklesen_iade_komisyon":  iade_komisyon,
-        "gerceklesen_kargo":          kargo,
-        "gerceklesen_diger":          diger,
-        "gerceklesen_odeme":          gerceklesen_odeme
-    }
-
-
-# ------------------------------------------------------------
-# Aşama 4 — Mutabakat Kaydını Kaydet
-# ------------------------------------------------------------
-
-def mutabakat_kaydet(cursor, order_id: int, marketplace: str,
-                     beklenen: dict, gerceklesen: dict,
-                     durum: ReconciliationStatus, alert: AlertLevel) -> None:
-    """
-    Hesaplanan mutabakat sonucunu order_financials tablosuna yazar.
-    Kayıt varsa günceller, yoksa yeni ekler.
-    """
-
-    net_fark         = hesapla_fark(beklenen["beklenen_odeme"], gerceklesen["gerceklesen_odeme"])
-    komisyon_fark    = hesapla_fark(beklenen["beklenen_komisyon"], gerceklesen["gerceklesen_komisyon"])
-    kargo_fark       = hesapla_fark(beklenen["beklenen_kargo"], gerceklesen["gerceklesen_kargo"])
-
-    cursor.execute("""
-        INSERT INTO order_financials (
-            order_id, marketplace,
-            expected_payment, actual_payment, payment_diff,
-            expected_commission, billed_commission, commission_diff,
-            expected_cargo, billed_cargo_sale, cargo_diff,
-            reconciliation_status, reconciled_at
+        INSERT INTO mutabakat (
+            siparis_id, pazaryeri,
+            beklenen_komisyon, faturalanan_komisyon, komisyon_farki,
+            faturalanan_satis_kargosu, faturalanan_iade_kargosu,
+            mutabakat_durumu, fark_var_mi, mutabakat_tarihi
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON DUPLICATE KEY UPDATE
-            actual_payment        = VALUES(actual_payment),
-            payment_diff          = VALUES(payment_diff),
-            billed_commission     = VALUES(billed_commission),
-            commission_diff       = VALUES(commission_diff),
-            billed_cargo_sale     = VALUES(billed_cargo_sale),
-            cargo_diff            = VALUES(cargo_diff),
-            reconciliation_status = VALUES(reconciliation_status),
-            reconciled_at         = VALUES(reconciled_at)
+            beklenen_komisyon        = VALUES(beklenen_komisyon),
+            faturalanan_komisyon     = VALUES(faturalanan_komisyon),
+            komisyon_farki           = VALUES(komisyon_farki),
+            faturalanan_satis_kargosu= VALUES(faturalanan_satis_kargosu),
+            faturalanan_iade_kargosu = VALUES(faturalanan_iade_kargosu),
+            mutabakat_durumu         = VALUES(mutabakat_durumu),
+            fark_var_mi              = VALUES(fark_var_mi),
+            mutabakat_tarihi         = VALUES(mutabakat_tarihi)
     """, (
-        order_id, marketplace,
-        beklenen["beklenen_odeme"], gerceklesen["gerceklesen_odeme"], net_fark,
-        beklenen["beklenen_komisyon"], gerceklesen["gerceklesen_komisyon"], komisyon_fark,
-        beklenen["beklenen_kargo"], gerceklesen["gerceklesen_kargo"], kargo_fark,
+        siparis_id, pazaryeri,
+        beklenen_komisyon,
+        gerceklesen["faturalanan_komisyon"],
+        komisyon_farki,
+        gerceklesen["faturalanan_satis_kargosu"],
+        gerceklesen["faturalanan_iade_kargosu"],
         durum.value,
-        datetime.now()
+        1 if fark_var else 0,
+        datetime.now(),
     ))
 
 
@@ -258,77 +252,58 @@ def mutabakat_kaydet(cursor, order_id: int, marketplace: str,
 # Ana Fonksiyon — Tek Sipariş Mutabakatı
 # ------------------------------------------------------------
 
-def siparis_mutabakat_yap(marketplace_order_id: str, marketplace: str) -> dict:
-    """
-    Tek bir sipariş için mutabakat yapar ve sonucu döner.
-
-    Dönüş değeri örneği:
-    {
-        "order_id": 123,
-        "durum": "fark_var",
-        "alert": "kritik",
-        "net_fark": -23.20,
-        "mesaj": "[DIKKAT] Pazaryeri eksik odedi! Fark: -23.20 TL"
-    }
-    """
-
-    conn = get_db_connection()
+def siparis_mutabakat_yap(pazaryeri_siparis_no: str, pazaryeri: str) -> dict:
+    conn   = get_db_connection()
     cursor = conn.cursor()
 
     try:
-        # Adım 1: Siparişi bul
-        siparis = siparis_eslestir(cursor, marketplace_order_id, marketplace)
+        siparis = siparis_eslestir(cursor, pazaryeri_siparis_no, pazaryeri)
 
         if not siparis:
             return {
-                "order_id": None,
-                "marketplace_order_id": marketplace_order_id,
-                "durum": ReconciliationStatus.MANUEL_INCELEME.value,
-                "alert": AlertLevel.KRITIK.value,
-                "net_fark": None,
-                "mesaj": f"[KRITIK] Siparis bulunamadi: {marketplace_order_id} - Manuel inceleme gerekli"
+                "durum":   ReconciliationStatus.MANUEL_INCELEME.value,
+                "alert":   AlertLevel.KRITIK.value,
+                "mesaj":   f"[KRITIK] Siparis bulunamadi: {pazaryeri_siparis_no}",
             }
 
-        order_id = siparis["id"]
+        siparis_id = siparis["id"]
 
-        # Adım 2: Beklenen ödemeyi hesapla
-        beklenen = beklenen_odeme_hesapla(cursor, order_id)
+        # Gerçekleşen değerleri faturalardan çek
+        gerceklesen = gerceklesen_degerler_hesapla(cursor, pazaryeri_siparis_no, pazaryeri)
 
-        # Adım 3: Gerçekleşen ödemeyi hesapla
-        gerceklesen = gerceklesen_odeme_hesapla(cursor, order_id, marketplace)
+        # Desi mutabakatı
+        desi_sonuc = desi_mutabakat(cursor, siparis_id, gerceklesen["faturalanan_desi"])
 
-        # Adım 4: Fark ve durum hesapla
-        net_fark = hesapla_fark(beklenen["beklenen_odeme"], gerceklesen["gerceklesen_odeme"])
-        alert    = belirle_alert_seviyesi(net_fark)
-        durum    = belirle_reconciliation_status(net_fark, eslesme_bulundu=True)
+        # Komisyon farkı (beklenen = 0 placeholder, ileride karlilik_hesaplama ile bağlanacak)
+        beklenen_komisyon = Decimal("0")
+        komisyon_farki    = hesapla_fark(beklenen_komisyon, gerceklesen["faturalanan_komisyon"])
+        durum  = belirle_reconciliation_status(komisyon_farki, eslesme_bulundu=True)
+        alert  = belirle_alert_seviyesi(komisyon_farki)
 
-        # Adım 5: Veritabanına kaydet
-        mutabakat_kaydet(cursor, order_id, marketplace, beklenen, gerceklesen, durum, alert)
+        mutabakat_kaydet(cursor, siparis_id, pazaryeri,
+                         beklenen_komisyon=beklenen_komisyon,
+                         gerceklesen=gerceklesen,
+                         desi_sonuc=desi_sonuc,
+                         durum=durum)
         conn.commit()
 
-        # Adım 6: Mesajı oluştur
-        if alert == AlertLevel.NORMAL:
-            mesaj = f"[OK] Mutabakat tamam: {marketplace_order_id}"
-        elif alert == AlertLevel.DUSUK:
-            mesaj = f"[BILGI] Pazaryeri fazla odedi. Fark: +{net_fark} TL - {marketplace_order_id}"
-        else:  # KRITIK
-            mesaj = f"[DIKKAT] Pazaryeri eksik odedi! Fark: {net_fark} TL - {marketplace_order_id}"
-
         return {
-            "order_id": order_id,
-            "marketplace_order_id": marketplace_order_id,
-            "durum": durum.value,
-            "alert": alert.value,
-            "net_fark": float(net_fark),
-            "beklenen_odeme": float(beklenen["beklenen_odeme"]),
-            "gerceklesen_odeme": float(gerceklesen["gerceklesen_odeme"]),
-            "mesaj": mesaj
+            "siparis_id":           siparis_id,
+            "pazaryeri_siparis_no": pazaryeri_siparis_no,
+            "durum":                durum.value,
+            "alert":                alert.value,
+            "komisyon_farki":       float(komisyon_farki),
+            "desi":                 desi_sonuc,
+            "mesaj": (
+                f"[OK] Mutabakat tamam: {pazaryeri_siparis_no}"
+                if alert == AlertLevel.NORMAL else
+                f"[{alert.value.upper()}] Komisyon farki: {komisyon_farki:+.2f} TL — {pazaryeri_siparis_no}"
+            ),
         }
 
     except Exception as e:
         conn.rollback()
         raise e
-
     finally:
         cursor.close()
         conn.close()
@@ -338,110 +313,67 @@ def siparis_mutabakat_yap(marketplace_order_id: str, marketplace: str) -> dict:
 # Toplu Mutabakat — Tüm Bekleyen Siparişler
 # ------------------------------------------------------------
 
-def toplu_mutabakat_yap(marketplace: str = None) -> dict:
-    """
-    Tüm beklemedeki siparişler için mutabakat yapar.
-    marketplace parametresi verilirse sadece o pazaryeri işlenir.
-
-    Dönüş: özet rapor
-    {
-        "toplam": 150,
-        "eslesdi": 120,
-        "fark_var": 25,
-        "manuel_inceleme": 5,
-        "kritik_uyarilar": [...],   ← biz zarar edenler
-        "dusuk_uyarilar": [...]     ← bizim lehimize fark olanlar
-    }
-    """
-
-    conn = get_db_connection()
+def toplu_mutabakat_yap(pazaryeri: str = None) -> dict:
+    conn   = get_db_connection()
     cursor = conn.cursor()
 
     try:
-        # Beklemedeki siparişleri çek
-        if marketplace:
+        if pazaryeri:
             cursor.execute("""
-                SELECT o.marketplace_order_id, o.marketplace
-                FROM orders o
-                LEFT JOIN order_financials f ON o.id = f.order_id
-                WHERE (f.reconciliation_status = 'beklemede' OR f.order_id IS NULL)
-                AND o.marketplace = %s
-            """, (marketplace,))
+                SELECT s.pazaryeri_siparis_no, s.pazaryeri
+                FROM siparisler s
+                LEFT JOIN mutabakat m ON s.id = m.siparis_id
+                WHERE (m.mutabakat_durumu = 'beklemede' OR m.siparis_id IS NULL)
+                  AND s.pazaryeri = %s
+            """, (pazaryeri,))
         else:
             cursor.execute("""
-                SELECT o.marketplace_order_id, o.marketplace
-                FROM orders o
-                LEFT JOIN order_financials f ON o.id = f.order_id
-                WHERE (f.reconciliation_status = 'beklemede' OR f.order_id IS NULL)
+                SELECT s.pazaryeri_siparis_no, s.pazaryeri
+                FROM siparisler s
+                LEFT JOIN mutabakat m ON s.id = m.siparis_id
+                WHERE m.mutabakat_durumu = 'beklemede' OR m.siparis_id IS NULL
             """)
-
         siparisler = cursor.fetchall()
-
     finally:
         cursor.close()
         conn.close()
 
-    # Her sipariş için mutabakat yap
     ozet = {
-        "toplam": len(siparisler),
-        "eslesdi": 0,
-        "fark_var": 0,
+        "toplam":          len(siparisler),
+        "eslesdi":         0,
+        "fark_var":        0,
         "manuel_inceleme": 0,
-        "kritik_uyarilar": [],    # Biz zarar edenler → öncelikli takip
-        "dusuk_uyarilar": []      # Bizim lehimize fark olanlar
+        "kritik_uyarilar": [],
+        "dusuk_uyarilar":  [],
     }
 
-    for marketplace_order_id, mkt in siparisler:
-        sonuc = siparis_mutabakat_yap(marketplace_order_id, mkt)
-
-        # Özeti güncelle
+    for pazar_siparis_no, pz in siparisler:
+        sonuc = siparis_mutabakat_yap(pazar_siparis_no, pz)
         if sonuc["durum"] == ReconciliationStatus.ESLESDI.value:
             ozet["eslesdi"] += 1
         elif sonuc["durum"] == ReconciliationStatus.FARK_VAR.value:
             ozet["fark_var"] += 1
             if sonuc["alert"] == AlertLevel.KRITIK.value:
-                ozet["kritik_uyarilar"].append(sonuc)   # [KRITIK] Biz zarar ettik
+                ozet["kritik_uyarilar"].append(sonuc)
             else:
-                ozet["dusuk_uyarilar"].append(sonuc)    # [BILGI] Bizim lehimize
-        elif sonuc["durum"] == ReconciliationStatus.MANUEL_INCELEME.value:
+                ozet["dusuk_uyarilar"].append(sonuc)
+        else:
             ozet["manuel_inceleme"] += 1
-            ozet["kritik_uyarilar"].append(sonuc)       # Manuel de kritik sayılır
+            ozet["kritik_uyarilar"].append(sonuc)
 
-    # Özet raporu yazdır
     print("\n" + "="*60)
     print(f"  MUTABAKAT RAPORU — {datetime.now().strftime('%d.%m.%Y %H:%M')}")
     print("="*60)
-    print(f"  Toplam sipariş    : {ozet['toplam']}")
-    print(f"  [OK]     Eslesti         : {ozet['eslesdi']}")
-    print(f"  [FARK]   Fark var        : {ozet['fark_var']}")
-    print(f"  [MANUEL] Manuel inceleme : {ozet['manuel_inceleme']}")
-    print(f"  [KRITIK] Kritik uyari    : {len(ozet['kritik_uyarilar'])}")
-    print(f"  [BILGI]  Dusuk uyari     : {len(ozet['dusuk_uyarilar'])}")
+    print(f"  Toplam          : {ozet['toplam']}")
+    print(f"  [OK]    Eslesti         : {ozet['eslesdi']}")
+    print(f"  [FARK]  Fark var        : {ozet['fark_var']}")
+    print(f"  [MNUL]  Manuel inceleme : {ozet['manuel_inceleme']}")
+    print(f"  [KRTK]  Kritik uyari    : {len(ozet['kritik_uyarilar'])}")
     print("="*60 + "\n")
-
-    if ozet["kritik_uyarilar"]:
-        print("[KRITIK] KRITIK UYARILAR (Zarar Eden / Eslesmeyenler):")
-        for u in ozet["kritik_uyarilar"]:
-            print(f"   {u['mesaj']}")
-        print()
 
     return ozet
 
 
-# ------------------------------------------------------------
-# Çalıştırma
-# ------------------------------------------------------------
-
 if __name__ == "__main__":
-    # Tek sipariş testi
-    sonuc = siparis_mutabakat_yap(
-        marketplace_order_id="123456789",
-        marketplace="Trendyol"
-    )
+    sonuc = siparis_mutabakat_yap("9640323216", "Trendyol")
     print(sonuc)
-
-    # Tüm Trendyol siparişlerini mutabakat yap
-    # ozet = toplu_mutabakat_yap(marketplace="Trendyol")
-
-    # Tüm pazaryerlerini mutabakat yap
-    # ozet = toplu_mutabakat_yap()
