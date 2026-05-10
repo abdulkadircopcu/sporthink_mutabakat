@@ -4,6 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Mutabakat | Sporthink Mutabakat</title>
+  <meta name="description" content="Pazaryeri bazlı ödeme mutabakat durumları ve fark analizi."/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
@@ -49,25 +50,83 @@
       </div>
     </div>
 
-    <!-- Pazaryeri Bazlı Tablo -->
+    <!-- Filtre Çubuğu -->
+    <div class="card filter-bar">
+      <div class="filter-group">
+        <label class="filter-label">Pazaryeri</label>
+        <select id="filtPazaryeri" class="filter-select">
+          <option value="">Tümü</option>
+          <option>Trendyol</option>
+          <option>Hepsiburada</option>
+          <option>Amazon</option>
+          <option>N11</option>
+          <option>Pazarama</option>
+          <option>Flo</option>
+          <option>LCW</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Durum</label>
+        <select id="filtDurum" class="filter-select">
+          <option value="">Tümü</option>
+          <option value="eslesdi">Eşleşti</option>
+          <option value="fark_var">Fark Var</option>
+          <option value="manuel_inceleme">Manuel İnceleme</option>
+          <option value="beklemede">Beklemede</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Sayfa Başı</label>
+        <select id="filtLimit" class="filter-select">
+          <option value="25">25</option>
+          <option value="50" selected>50</option>
+          <option value="100">100</option>
+        </select>
+      </div>
+      <button id="filtBtn" class="filter-btn">🔍 Filtrele</button>
+    </div>
+
+    <!-- Tam Mutabakat Tablosu -->
     <div class="card table-card">
       <div class="table-header">
-        <h2 class="table-title">Pazaryeri Bazlı Mutabakat Özeti</h2>
+        <h2 class="table-title">Mutabakat Listesi</h2>
+        <span class="table-count" id="mutabakatCount">—</span>
       </div>
       <div class="table-wrap">
-        <table class="data-table">
+        <table class="data-table" id="mutabakatTable">
           <thead>
             <tr>
+              <th>Sipariş No</th>
+              <th>Pazaryeri Sipariş</th>
               <th>Pazaryeri</th>
+              <th>Barkod</th>
+              <th>Ürün</th>
+              <th>Sipariş Tarihi</th>
+              <th>Sipariş Durum</th>
               <th>Durum</th>
-              <th>Sipariş Adedi</th>
-              <th>Toplam Fark (TL)</th>
+              <th>Bek. Ödeme</th>
+              <th>Ger. Ödeme</th>
+              <th>Ödeme Farkı</th>
+              <th>Bek. Komisyon</th>
+              <th>Fat. Komisyon</th>
+              <th>Kom. Farkı</th>
+              <th>Bek. Kargo</th>
+              <th>Fat. Kargo</th>
+              <th>Kargo Farkı</th>
+              <th>Fark</th>
+              <th>Mükerrer</th>
             </tr>
           </thead>
           <tbody id="mutabakatBody">
-            <tr><td colspan="4" class="table-empty">Veri yükleniyor...</td></tr>
+            <tr><td colspan="19" class="table-empty">Veri yükleniyor...</td></tr>
           </tbody>
         </table>
+      </div>
+      <!-- Sayfalama -->
+      <div class="pagination" id="mutabakatPagination" style="display:none;">
+        <button class="page-btn" id="prevBtn">‹ Önceki</button>
+        <span class="page-info" id="pageInfo">—</span>
+        <button class="page-btn" id="nextBtn">Sonraki ›</button>
       </div>
     </div>
 
