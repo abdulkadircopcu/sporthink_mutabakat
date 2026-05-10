@@ -6,6 +6,7 @@ from flask import Blueprint, request, jsonify
 import mysql.connector
 import bcrypt
 import jwt
+from jwt import jwk
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -26,24 +27,32 @@ def get_conn():
 
 
 def token_olustur(kullanici_id, email, rol, ad, soyad):
+    now = datetime.now(timezone.utc)
     payload = {
         "sub":   kullanici_id,
         "email": email,
         "rol":   rol,
         "ad":    ad,
         "soyad": soyad,
-        "iat":   datetime.now(timezone.utc),
-        "exp":   datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRE),
+        "iat":   int(now.timestamp()),
+        "exp":   int((now + timedelta(hours=JWT_EXPIRE)).timestamp()),
     }
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGO)
+    # JWT kütüphanesi OctetJWK gerektirir
+    key = jwk.OctetJWK(JWT_SECRET.encode())
+    jwt_instance = jwt.JWT()
+    return jwt_instance.encode(payload, key, alg=JWT_ALGO)
 
 
 def token_dogrula(token):
     try:
-        return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGO])
-    except jwt.ExpiredSignatureError:
+        key = jwk.OctetJWK(JWT_SECRET.encode())
+        jwt_instance = jwt.JWT()
+        return jwt_instance.decode(token, key, algorithms={JWT_ALGO})
+    except jwt.exceptions.ExpiredSignatureError:
         return None
-    except jwt.InvalidTokenError:
+    except jwt.exceptions.InvalidTokenError:
+        return None
+    except Exception:
         return None
 
 
