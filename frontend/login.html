@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Giriş | Sporthink Mutabakat</title>
+  <meta name="description" content="Sporthink E-Ticaret Mutabakat Platformuna giriş yapın."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+      --border: #30363d; --text: #e6edf3; --text-muted: #8b949e;
+      --accent: #58a6ff; --accent-glow: rgba(88,166,255,0.15);
+      --green: #3fb950; --red: #f85149; --red-glow: rgba(248,81,73,0.12);
+      --radius: 14px; --shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body {
+      font-family:'Inter',sans-serif; background:var(--bg); color:var(--text);
+      min-height:100vh; display:flex; align-items:center; justify-content:center;
+      background-image: radial-gradient(ellipse at 20% 50%, rgba(88,166,255,0.06) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 20%, rgba(163,113,247,0.05) 0%, transparent 50%);
+    }
+
+    /* Login kart */
+    .login-wrap {
+      width:100%; max-width:420px; padding:24px;
+      animation: fadeUp 0.4s ease;
+    }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(20px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    /* Logo alanı */
+    .login-logo {
+      text-align:center; margin-bottom:32px;
+    }
+    .login-logo-icon {
+      font-size:40px; display:block; margin-bottom:12px;
+      filter: drop-shadow(0 0 20px rgba(88,166,255,0.4));
+    }
+    .login-logo-title {
+      font-size:22px; font-weight:700; color:var(--text);
+      letter-spacing:-0.5px;
+    }
+    .login-logo-sub {
+      font-size:13px; color:var(--text-muted); margin-top:4px;
+    }
+
+    /* Kart */
+    .login-card {
+      background:var(--bg2); border:1px solid var(--border);
+      border-radius:var(--radius); padding:32px; box-shadow:var(--shadow);
+    }
+    .login-title {
+      font-size:17px; font-weight:600; margin-bottom:24px; color:var(--text);
+    }
+
+    /* Form */
+    .form-group { margin-bottom:18px; }
+    .form-label {
+      display:block; font-size:12px; font-weight:600;
+      color:var(--text-muted); text-transform:uppercase;
+      letter-spacing:0.05em; margin-bottom:8px;
+    }
+    .form-input {
+      width:100%; background:var(--bg3); border:1.5px solid var(--border);
+      color:var(--text); border-radius:9px; padding:12px 14px;
+      font-size:14px; font-family:inherit; outline:none;
+      transition:border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-input:focus {
+      border-color:var(--accent);
+      box-shadow: 0 0 0 3px rgba(88,166,255,0.15);
+    }
+    .form-input::placeholder { color:var(--text-muted); }
+
+    /* Şifre wrapper */
+    .pw-wrap { position:relative; }
+    .pw-toggle {
+      position:absolute; right:12px; top:50%; transform:translateY(-50%);
+      background:none; border:none; color:var(--text-muted); cursor:pointer;
+      font-size:16px; padding:4px; line-height:1;
+      transition:color 0.15s;
+    }
+    .pw-toggle:hover { color:var(--accent); }
+
+    /* Giriş butonu */
+    .login-btn {
+      width:100%; padding:13px; background:var(--accent); color:#0d1117;
+      border:none; border-radius:9px; font-size:15px; font-weight:700;
+      cursor:pointer; font-family:inherit; margin-top:8px;
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      transition:all 0.2s;
+    }
+    .login-btn:hover:not(:disabled) {
+      background:#79b8ff; transform:translateY(-1px);
+      box-shadow:0 4px 20px rgba(88,166,255,0.3);
+    }
+    .login-btn:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+    .login-btn.loading .btn-text::after { content:" ..."; }
+
+    /* Hata kutusu */
+    .error-box {
+      background:var(--red-glow); border:1px solid rgba(248,81,73,0.4);
+      border-radius:8px; padding:12px 14px; font-size:13px;
+      color:var(--red); margin-bottom:18px; display:none;
+      animation:fadeUp 0.2s ease;
+    }
+    .error-box.show { display:flex; align-items:center; gap:8px; }
+
+    /* Spinner */
+    .spinner {
+      width:16px; height:16px; border:2px solid rgba(13,17,23,0.3);
+      border-top-color:#0d1117; border-radius:50%;
+      animation:spin 0.7s linear infinite; display:none; flex-shrink:0;
+    }
+    .login-btn.loading .spinner { display:block; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* Alt bilgi */
+    .login-footer {
+      text-align:center; margin-top:20px; font-size:12px; color:var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-wrap">
+    <!-- Logo -->
+    <div class="login-logo">
+      <span class="login-logo-icon">⚡</span>
+      <div class="login-logo-title">Sporthink Mutabakat</div>
+      <div class="login-logo-sub">E-Ticaret Analiz Platformu</div>
+    </div>
+
+    <!-- Kart -->
+    <div class="login-card">
+      <h1 class="login-title">Hesabınıza giriş yapın</h1>
+
+      <!-- Hata -->
+      <div id="errorBox" class="error-box">
+        <span>⚠️</span>
+        <span id="errorMsg"></span>
+      </div>
+
+      <form id="loginForm" autocomplete="on">
+        <!-- Email -->
+        <div class="form-group">
+          <label class="form-label" for="emailInput">E-posta</label>
+          <input
+            id="emailInput"
+            type="email"
+            class="form-input"
+            placeholder="ornek@sporthink.com"
+            autocomplete="email"
+            required
+          />
+        </div>
+
+        <!-- Şifre -->
+        <div class="form-group">
+          <label class="form-label" for="passwordInput">Şifre</label>
+          <div class="pw-wrap">
+            <input
+              id="passwordInput"
+              type="password"
+              class="form-input"
+              placeholder="••••••••"
+              autocomplete="current-password"
+              required
+            />
+            <button type="button" class="pw-toggle" id="pwToggle" title="Şifreyi göster/gizle">👁</button>
+          </div>
+        </div>
+
+        <!-- Giriş Butonu -->
+        <button type="submit" id="loginBtn" class="login-btn">
+          <div class="spinner" id="spinner"></div>
+          <span class="btn-text" id="btnText">Giriş Yap</span>
+        </button>
+      </form>
+    </div>
+
+    <div class="login-footer">© 2026 Sporthink · Tüm hakları saklıdır</div>
+  </div>
+
+  <script>
+    const API = "http://localhost:5000/api";
+
+    // Zaten giriş yapmışsa ana sayfaya yönlendir
+    if (localStorage.getItem("auth_token")) {
+      window.location.replace("/");
+    }
+
+    const form     = document.getElementById("loginForm");
+    const btn      = document.getElementById("loginBtn");
+    const errorBox = document.getElementById("errorBox");
+    const errorMsg = document.getElementById("errorMsg");
+    const pwInput  = document.getElementById("passwordInput");
+    const pwToggle = document.getElementById("pwToggle");
+
+    // Şifre göster/gizle
+    pwToggle.addEventListener("click", () => {
+      const show = pwInput.type === "password";
+      pwInput.type   = show ? "text" : "password";
+      pwToggle.textContent = show ? "🙈" : "👁";
+    });
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorBox.classList.add("show");
+    }
+    function hideError() {
+      errorBox.classList.remove("show");
+    }
+    function setLoading(v) {
+      btn.disabled = v;
+      btn.classList.toggle("loading", v);
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hideError();
+      setLoading(true);
+
+      const email = document.getElementById("emailInput").value.trim();
+      const sifre = document.getElementById("passwordInput").value;
+
+      try {
+        const r = await fetch(`${API}/auth/login`, {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ email, sifre }),
+        });
+        const data = await r.json();
+
+        if (data.basarili) {
+          localStorage.setItem("auth_token",    data.token);
+          localStorage.setItem("auth_kullanici", JSON.stringify(data.kullanici));
+          window.location.replace("/");
+        } else {
+          showError(data.hata || "Giriş başarısız.");
+        }
+      } catch (err) {
+        showError("Sunucuya bağlanılamadı: " + err.message);
+      } finally {
+        setLoading(false);
+      }
+    });
+  </script>
+
+</body>
+</html>

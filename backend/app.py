@@ -14,6 +14,7 @@ from flask_cors import CORS
 from routes.upload_routes import upload_bp
 from routes.analiz_routes import analiz_bp
 from routes.pipeline_routes import pipeline_bp
+from routes.auth_routes import auth_bp
 
 FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
 
@@ -39,6 +40,7 @@ app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50 MB limit
 app.register_blueprint(upload_bp,    url_prefix="/api")
 app.register_blueprint(analiz_bp,    url_prefix="/api")
 app.register_blueprint(pipeline_bp,  url_prefix="/api")
+app.register_blueprint(auth_bp,      url_prefix="/api")
 
 if __name__ == "__main__":
     print("==============================================")
