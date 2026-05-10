@@ -36,8 +36,15 @@
     <!-- Sol Panel: Yükleme Formu -->
     <section class="upload-panel">
 
+      <!-- Pazaryeri Bölüm Başlığı -->
+      <div class="mp-section-divider">
+        <div class="mp-divider-line"></div>
+        <div class="mp-divider-label">🛒 Pazaryeri</div>
+        <div class="mp-divider-line"></div>
+      </div>
+
       <!-- Adım 1: Pazaryeri Seçimi -->
-      <div class="card">
+      <div class="card mp-card">
         <div class="card-header">
           <span class="step-badge">1</span>
           <h2>Pazaryeri Seç</h2>
@@ -48,7 +55,7 @@
       </div>
 
       <!-- Adım 2: Veri Türü Seçimi -->
-      <div class="card" id="dataTypeCard" style="display:none;">
+      <div class="card mp-card" id="dataTypeCard" style="display:none;">
         <div class="card-header">
           <span class="step-badge">2</span>
           <h2>Veri Türü Seç</h2>
@@ -59,7 +66,7 @@
       </div>
 
       <!-- Adım 3: Dosya Yükleme -->
-      <div class="card" id="uploadCard" style="display:none;">
+      <div class="card mp-card" id="uploadCard" style="display:none;">
         <div class="card-header">
           <span class="step-badge">3</span>
           <h2>Dosya Yükle</h2>
@@ -92,6 +99,99 @@
 
     </section>
 
+    <!-- ERP Yükleme Bölümü -->
+    <section class="upload-panel erp-panel">
+
+      <!-- ERP Başlık -->
+      <div class="erp-section-divider">
+        <div class="erp-divider-line"></div>
+        <div class="erp-divider-label">🏭 ERP Sistemi</div>
+        <div class="erp-divider-line"></div>
+      </div>
+
+      <!-- Barkod Uyarı Paneli -->
+      <div id="erpBarkodUyari" class="erp-uyari-panel" style="display:none;">
+        <div class="erp-uyari-header" id="erpUyariToggle">
+          <div class="erp-uyari-icon-text">
+            <span class="erp-uyari-icon">⚠️</span>
+            <div>
+              <div class="erp-uyari-baslik">Hammurlab'da eşleşmeyen barkodlar</div>
+              <div id="erpUyariAciklama" class="erp-uyari-aciklama"></div>
+            </div>
+          </div>
+          <span id="erpUyariCaret" class="erp-uyari-caret">▼</span>
+        </div>
+        <div id="erpUyariDetay" class="erp-uyari-detay" style="display:none;">
+          <table class="data-table erp-uyari-tablo">
+            <thead>
+              <tr>
+                <th>Barkod</th>
+                <th>Ürün Adı</th>
+                <th>Marka</th>
+                <th>Kaynak</th>
+              </tr>
+            </thead>
+            <tbody id="erpUyariTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ERP Kaynak Seçimi -->
+      <div class="card erp-card">
+        <div class="card-header">
+          <span class="step-badge erp-badge">E1</span>
+          <h2>ERP Kaynağı Seç</h2>
+        </div>
+        <div id="erpSourceGrid" class="erp-source-grid">
+          <!-- JS ile doldurulacak -->
+        </div>
+      </div>
+
+      <!-- ERP Veri Türü -->
+      <div class="card erp-card" id="erpDataTypeCard" style="display:none;">
+        <div class="card-header">
+          <span class="step-badge erp-badge">E2</span>
+          <h2>Veri Türü Seç</h2>
+        </div>
+        <div id="erpDataTypeList" class="data-type-list">
+          <!-- JS ile doldurulacak -->
+        </div>
+      </div>
+
+      <!-- ERP Dosya Yükleme -->
+      <div class="card erp-card" id="erpUploadCard" style="display:none;">
+        <div class="card-header">
+          <span class="step-badge erp-badge">E3</span>
+          <h2>Dosya Yükle</h2>
+        </div>
+
+        <div id="erpDropZone" class="drop-zone">
+          <input type="file" id="erpFileInput" accept=".xlsx,.xls" hidden />
+          <div class="drop-icon">📂</div>
+          <p class="drop-title">Excel dosyasını sürükle &amp; bırak</p>
+          <p class="drop-sub">veya tıklayarak seç (.xlsx, .xls)</p>
+          <div id="erpSelectedFile" class="selected-file" style="display:none;"></div>
+        </div>
+
+        <button id="erpUploadBtn" class="upload-btn erp-upload-btn" disabled>
+          <span class="btn-icon">⬆</span>
+          <span id="erpUploadBtnText">Yükle</span>
+        </button>
+
+        <!-- Progress -->
+        <div id="erpProgressWrap" class="progress-wrap" style="display:none;">
+          <div class="progress-bar">
+            <div id="erpProgressFill" class="progress-fill erp-progress-fill"></div>
+          </div>
+          <span id="erpProgressText" class="progress-text">Yükleniyor...</span>
+        </div>
+
+        <!-- Sonuç -->
+        <div id="erpResultBox" class="result-box" style="display:none;"></div>
+      </div>
+
+    </section>
+
     <!-- Sağ Panel: Log -->
     <section class="log-panel">
       <div class="card log-card">
@@ -112,6 +212,7 @@
 
   <script src="nav.js"></script>
   <script src="app.js"></script>
+  <script src="erp.js"></script>
 </body>
 
 </html>
