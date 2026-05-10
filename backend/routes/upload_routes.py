@@ -13,6 +13,8 @@ from importers.n11_importer import N11Importer
 from importers.pazarama_importer import PazaramaImporter
 from importers.flo_importer import FloImporter
 from importers.lcw_importer import LcwImporter
+from importers.hitit_importer import HititSatisImporter, HititIadeImporter
+from importers.hammurlab_importer import HamurlabSiparisImporter, HamurlabIptalIadeImporter
 
 upload_bp = Blueprint("upload", __name__)
 
@@ -270,3 +272,186 @@ def get_logs():
             return jsonify(json.load(f))
     except Exception:
         return jsonify([])
+
+
+# -------------------------------------------------------
+# ERP Sistemi: Hitit & Hammurlab
+# -------------------------------------------------------
+
+# DB bağlantısı (analiz_routes ile aynı config)
+_DB_CFG = {
+    "host": "localhost", "user": "root",
+    "password": "", "database": "sporthink_mutabakat", "charset": "utf8mb4"
+}
+
+def _get_db():
+    import mysql.connector
+    return mysql.connector.connect(**_DB_CFG)
+
+
+@upload_bp.route("/erp/barkod-uyari", methods=["GET"])
+def erp_barkod_uyari():
+    """
+    Hammurlab'da (siparisler + iptal/iade) olup
+    Hitit'te (satislar + iadeler) hiç geçmeyen barkodları döner.
+    """
+    try:
+        conn = _get_db()
+        cur  = conn.cursor(dictionary=True)
+
+        # Hitit'teki tüm benzersiz barkodlar
+        cur.execute("""
+            SELECT DISTINCT barkod FROM hitit_satislar  WHERE barkod IS NOT NULL AND barkod != ''
+            UNION
+            SELECT DISTINCT barkod FROM hitit_iadeler   WHERE barkod IS NOT NULL AND barkod != ''
+        """)
+        hitit_barkodlar = {r["barkod"] for r in cur.fetchall()}
+
+        # Hammurlab'daki tüm barkodlar (kaynak bilgisiyle)
+        cur.execute("""
+            SELECT DISTINCT barkod, 'siparisler' AS kaynak, urun_adi, marka
+            FROM hamurlab_siparisler
+            WHERE barkod IS NOT NULL AND barkod != ''
+            UNION
+            SELECT DISTINCT barkod, 'iptal_iade' AS kaynak, urun_adi, marka
+            FROM hamurlab_iptal_iade
+            WHERE barkod IS NOT NULL AND barkod != ''
+        """)
+        hamurlab_rows = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        # Fark: Hammurlab'da olup Hitit'te olmayan
+        eksikler = [
+            r for r in hamurlab_rows
+            if r["barkod"] not in hitit_barkodlar
+        ]
+
+        # Tekrarları barkod bazında birleştir
+        goruldu = {}
+        for r in eksikler:
+            b = r["barkod"]
+            if b not in goruldu:
+                goruldu[b] = {
+                    "barkod":   b,
+                    "urun_adi": r["urun_adi"] or "-",
+                    "marka":    r["marka"]    or "-",
+                    "kaynaklar": set(),
+                }
+            goruldu[b]["kaynaklar"].add(r["kaynak"])
+
+        sonuc = []
+        for v in goruldu.values():
+            v["kaynaklar"] = list(v["kaynaklar"])
+            sonuc.append(v)
+
+        return jsonify({
+            "uyari_var": len(sonuc) > 0,
+            "eksik_barkod_sayisi": len(sonuc),
+            "hitit_barkod_sayisi": len(hitit_barkodlar),
+            "eksikler": sonuc[:100]   # Max 100 satır döndür
+        })
+
+    except Exception as e:
+        return jsonify({"hata": str(e)}), 500
+
+ERP_CONFIG = {
+    "hitit": {
+        "label": "Hitit ERP",
+        "emoji": "🏭",
+        "veri_tipleri": [
+            {"key": "satislar", "label": "Satışlar"},
+            {"key": "iadeler",  "label": "İadeler"},
+        ]
+    },
+    "hammurlab": {
+        "label": "Hammurlab",
+        "emoji": "📋",
+        "veri_tipleri": [
+            {"key": "siparisler",  "label": "Siparişler"},
+            {"key": "iptal_iade", "label": "İptal / İade"},
+        ]
+    },
+}
+
+
+def get_erp_importer_method(kaynak, data_type):
+    metodlar = {
+        "hitit": {
+            "satislar": HititSatisImporter().import_satislar,
+            "iadeler":  HititIadeImporter().import_iadeler,
+        },
+        "hammurlab": {
+            "siparisler":  HamurlabSiparisImporter().import_siparisler,
+            "iptal_iade":  HamurlabIptalIadeImporter().import_iptal_iade,
+        },
+    }
+    src = metodlar.get(kaynak)
+    if not src:
+        return None
+    return src.get(data_type)
+
+
+@upload_bp.route("/erp/sources", methods=["GET"])
+def get_erp_sources():
+    return jsonify(ERP_CONFIG)
+
+
+@upload_bp.route("/erp/upload", methods=["POST"])
+def erp_upload():
+    kaynak    = request.form.get("kaynak", "").lower().strip()
+    data_type = request.form.get("data_type", "").strip()
+    dosya     = request.files.get("file")
+
+    if not dosya or dosya.filename == "":
+        return jsonify({"basarili": False, "hata": "Dosya secilmedi."}), 400
+
+    if not kaynak or not data_type:
+        return jsonify({"basarili": False, "hata": "Kaynak veya veri turu belirtilmedi."}), 400
+
+    if not dosya.filename.endswith((".xlsx", ".xls")):
+        return jsonify({"basarili": False, "hata": "Sadece .xlsx veya .xls dosyalari kabul edilir."}), 400
+
+    gecici_yol = os.path.join(current_app.config["UPLOAD_FOLDER"], dosya.filename)
+    dosya.save(gecici_yol)
+
+    try:
+        metod = get_erp_importer_method(kaynak, data_type)
+
+        if not metod:
+            log_yaz(kaynak, data_type, dosya.filename, 0, "hata",
+                    f"Tanimsiz kombinasyon: {kaynak}/{data_type}")
+            return jsonify({
+                "basarili": False,
+                "hata": f"Gecersiz kombinasyon: '{kaynak}' / '{data_type}'"
+            }), 400
+
+        import pandas as pd
+        satir_sayisi = len(pd.read_excel(gecici_yol))
+        metod(gecici_yol)
+
+        log_kayit = log_yaz(kaynak, data_type, dosya.filename, satir_sayisi, "basarili")
+
+        return jsonify({
+            "basarili": True,
+            "mesaj": f"{satir_sayisi} satir basariyla yuklendi.",
+            "log": log_kayit
+        })
+
+    except Exception as e:
+        hata_str = str(e)
+        log_kayit = log_yaz(kaynak, data_type, dosya.filename, 0, "hata", hata_str)
+        return jsonify({
+            "basarili": False,
+            "hata": hata_str,
+            "log": log_kayit
+        }), 500
+
+    finally:
+        import time
+        time.sleep(0.3)
+        try:
+            if os.path.exists(gecici_yol):
+                os.remove(gecici_yol)
+        except PermissionError:
+            pass
