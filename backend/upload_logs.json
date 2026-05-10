@@ -1,5 +1,41 @@
 [
   {
+    "tarih": "10.05.2026 22:10:52",
+    "marketplace": "hitit",
+    "data_type": "iadeler",
+    "dosya": "barkodluIadeGuncel.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "10.05.2026 22:10:40",
+    "marketplace": "hitit",
+    "data_type": "satislar",
+    "dosya": "barkodluSatisGuncelExcel.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "10.05.2026 22:10:25",
+    "marketplace": "hammurlab",
+    "data_type": "iptal_iade",
+    "dosya": "iptaliadeListesi.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "10.05.2026 22:07:39",
+    "marketplace": "hammurlab",
+    "data_type": "siparisler",
+    "dosya": "gelenSiparisListesi.xlsx",
+    "satir_sayisi": 1,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
     "tarih": "07.05.2026 21:34:14",
     "marketplace": "pazarama",
     "data_type": "komisyon_kargo",
