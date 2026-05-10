@@ -79,6 +79,7 @@
       </div>
     </div>
 
+
     <!-- Tablo -->
     <div class="card table-card">
       <div class="table-header">
@@ -111,6 +112,54 @@
 
       <!-- Sayfalama -->
       <div class="pagination" id="pagination"></div>
+    </div>
+
+    <!-- Pazaryeri Karşılaştırma -->
+    <div class="card" id="karsilastirmaCard">
+      <div class="card-header" style="justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span style="font-size:20px;">🏆</span>
+          <h2>Pazaryeri Karşılaştırması</h2>
+        </div>
+        <div id="karsilastirmaToggle" style="cursor:pointer;color:var(--text-muted);font-size:13px;user-select:none;">▼ Gizle</div>
+      </div>
+      <div id="karsilastirmaIcerik">
+        <!-- Tab Menü -->
+        <div class="kars-tabs" id="karsTabs">
+          <button class="kars-tab active" data-metric="toplam_ciro">💰 Ciro</button>
+          <button class="kars-tab" data-metric="toplam_kar">📈 Net Kâr</button>
+          <button class="kars-tab" data-metric="ort_kar_marji">% Kâr Marjı</button>
+          <button class="kars-tab" data-metric="siparis_sayisi">🛒 Sipariş</button>
+          <button class="kars-tab" data-metric="toplam_komisyon">🏷 Komisyon</button>
+          <button class="kars-tab" data-metric="toplam_kargo">📦 Kargo</button>
+        </div>
+        <!-- Karşılaştırma Listesi -->
+        <div id="karsilastirmaListe" class="kars-liste">
+          <div class="table-empty">Yükleniyor...</div>
+        </div>
+        <!-- Özet Karşılaştırma Tablosu -->
+        <div class="table-wrap" style="margin-top:24px;">
+          <table class="data-table" id="karsTable">
+            <thead>
+              <tr>
+                <th>Pazaryeri</th>
+                <th>Sipariş</th>
+                <th>Ciro</th>
+                <th>Net Kâr</th>
+                <th>Kâr Marjı</th>
+                <th>Ort. Sipariş</th>
+                <th>Komisyon</th>
+                <th>Kargo</th>
+                <th>Karlı</th>
+                <th>Zarar</th>
+              </tr>
+            </thead>
+            <tbody id="karsBody">
+              <tr><td colspan="10" class="table-empty">Yükleniyor...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
   </main>
