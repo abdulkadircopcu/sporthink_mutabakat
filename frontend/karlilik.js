@@ -26,7 +26,7 @@ async function loadOzet(filters = {}) {
 }
 
 async function loadListe(filters = {}, sayfa = 1) {
-  const params = new URLSearchParams({ ...filters, sayfa, limit: 50 }).toString();
+  const params = new URLSearchParams({ ...filters, sayfa, limit: 20 }).toString();
   const body = document.getElementById("karlilikBody");
   body.innerHTML = `<tr><td colspan="13" class="table-empty">Yukleniyor...</td></tr>`;
 
@@ -92,21 +92,32 @@ function truncate(str, len) {
 }
 
 function renderPagination(toplam, current) {
-  const totalPages = Math.ceil(toplam / 50);
+  const totalPages = Math.ceil(toplam / 20);
   const el = document.getElementById("pagination");
   if (totalPages <= 1) { el.innerHTML = ""; return; }
 
-  let html = "";
-  if (current > 1)      html += `<button class="page-btn" onclick="goPage(${current-1})">← Onceki</button>`;
-  html += `<span class="page-info">${current} / ${totalPages}</span>`;
-  if (current < totalPages) html += `<button class="page-btn" onclick="goPage(${current+1})">Sonraki →</button>`;
-  el.innerHTML = html;
+  const pages = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (current > 3) pages.push("…");
+    for (let i = Math.max(2, current - 1); i <= Math.min(totalPages - 1, current + 1); i++) pages.push(i);
+    if (current < totalPages - 2) pages.push("…");
+    pages.push(totalPages);
+  }
+
+  el.innerHTML = pages.map(p =>
+    p === "…"
+      ? `<span class="page-ellipsis">…</span>`
+      : `<button type="button" class="page-btn${p === current ? " active" : ""}" onclick="goPage(${p})">${p}</button>`
+  ).join("");
 }
 
 function goPage(p) {
   currentPage = p;
   loadListe(currentFilters, p);
-  window.scrollTo({ top: 0, behavior:"smooth" });
+  document.querySelector(".table-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function getFilters() {
@@ -158,31 +169,37 @@ function renderKarsListe() {
   const liste   = document.getElementById("karsilastirmaListe");
   const mCfg    = METRIC_LABELS[karsMetric];
   const values  = karsData.map(r => parseFloat(r[karsMetric]) || 0);
-  const maxVal  = Math.max(...values, 1);
+  const maxAbs  = Math.max(...values.map(Math.abs), 1);
+  const CHART_H = 200;
 
-  liste.innerHTML = karsData.map((row, i) => {
-    const val     = values[i];
-    const pct     = Math.max((val / maxVal) * 100, 0).toFixed(1);
-    const isNeg   = val < 0;
+  const cols = karsData.map((row, i) => {
+    const val      = values[i];
+    const barH     = Math.max((Math.abs(val) / maxAbs) * CHART_H, 2);
+    const isNeg    = val < 0;
     const barColor = karsMetric === "toplam_kar"
       ? (isNeg ? "var(--red)" : "var(--green)")
       : "var(--accent)";
 
     return `
-      <div class="kars-row">
-        <div class="kars-label">
-          <span class="kars-emoji">${MP_EMOJIS[row.pazaryeri] || "🏪"}</span>
-          <span class="kars-mp-name">${row.pazaryeri}</span>
-        </div>
-        <div class="kars-bar-wrap">
-          <div class="kars-bar" style="width:${Math.abs(pct)}%;background:${barColor};"></div>
-        </div>
-        <div class="kars-value" style="color:${isNeg ? "var(--red)" : "var(--text)"}">
+      <div class="kars-col-item">
+        <div class="kars-col-val" style="color:${isNeg ? "var(--red)" : "var(--text)"}">
           ${mCfg.fmt(val)}
         </div>
-        <div class="kars-share">${pct}%</div>
+        <div class="kars-col-bar" style="height:${barH}px;background:${barColor};"></div>
       </div>`;
   }).join("");
+
+  const names = karsData.map(row => `
+    <div class="kars-col-name">
+      <span class="kars-col-emoji">${MP_EMOJIS[row.pazaryeri] || "🏪"}</span>
+      <span class="kars-col-mp">${row.pazaryeri}</span>
+    </div>`).join("");
+
+  liste.innerHTML = `
+    <div class="kars-chart">
+      <div class="kars-cols">${cols}</div>
+      <div class="kars-col-names">${names}</div>
+    </div>`;
 }
 
 function renderKarsTable() {

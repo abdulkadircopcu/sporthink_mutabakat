@@ -222,22 +222,9 @@ def upload():
 
         log_kayit = log_yaz(marketplace, data_type, dosya.filename, satir_sayisi, "basarili")
 
-        # Pipeline'i arka planda calistir (kullanicinin beklemesine gerek yok)
-        import threading
-        pz_adi = PAZARYERI_MAP.get(marketplace)
-        if pz_adi:
-            def _pipeline_bg():
-                try:
-                    from pipeline import tam_pipeline_calistir
-                    tam_pipeline_calistir(pz_adi)
-                    print(f"[AUTO-PIPELINE] {pz_adi} tamamlandi.")
-                except Exception as pe:
-                    print(f"[AUTO-PIPELINE] HATA ({pz_adi}): {pe}")
-            threading.Thread(target=_pipeline_bg, daemon=True).start()
-
         return jsonify({
             "basarili": True,
-            "mesaj": f"{satir_sayisi} satir basariyla yuklendi. Karlilik ozeti guncelleniyor...",
+            "mesaj": f"{satir_sayisi} satir basariyla yuklendi.",
             "log": log_kayit
         })
 
@@ -293,52 +280,54 @@ def _get_db():
 def erp_barkod_uyari():
     """
     Hammurlab'da (siparisler + iptal/iade) olup
-    Hitit'te (satislar + iadeler) hiç geçmeyen barkodları döner.
+    Hitit'te (satislar + iadeler) hiç geçmeyen SİPARİŞLERİN TAKIP NUMARASINI döner.
     """
     try:
         conn = _get_db()
         cur  = conn.cursor(dictionary=True)
 
-        # Hitit'teki tüm benzersiz barkodlar
+        # Hitit'teki tüm benzersiz takip numaraları
         cur.execute("""
-            SELECT DISTINCT barkod FROM hitit_satislar  WHERE barkod IS NOT NULL AND barkod != ''
+            SELECT DISTINCT takip_no FROM hitit_satislar  WHERE takip_no IS NOT NULL AND takip_no != ''
             UNION
-            SELECT DISTINCT barkod FROM hitit_iadeler   WHERE barkod IS NOT NULL AND barkod != ''
+            SELECT DISTINCT takip_no FROM hitit_iadeler   WHERE takip_no IS NOT NULL AND takip_no != ''
         """)
-        hitit_barkodlar = {r["barkod"] for r in cur.fetchall()}
+        hitit_takip_nolari = {r["takip_no"] for r in cur.fetchall()}
 
-        # Hammurlab'daki tüm barkodlar (kaynak bilgisiyle)
+        # Hammurlab'daki tüm takip numaraları (kaynak bilgisiyle)
         cur.execute("""
-            SELECT DISTINCT barkod, 'siparisler' AS kaynak, urun_adi, marka
+            SELECT DISTINCT takip_no, siparis_no, 'siparisler' AS kaynak, urun_adi, marka, barkod
             FROM hamurlab_siparisler
-            WHERE barkod IS NOT NULL AND barkod != ''
+            WHERE takip_no IS NOT NULL AND takip_no != ''
             UNION
-            SELECT DISTINCT barkod, 'iptal_iade' AS kaynak, urun_adi, marka
+            SELECT DISTINCT takip_no, siparis_no, 'iptal_iade' AS kaynak, urun_adi, marka, barkod
             FROM hamurlab_iptal_iade
-            WHERE barkod IS NOT NULL AND barkod != ''
+            WHERE takip_no IS NOT NULL AND takip_no != ''
         """)
         hamurlab_rows = cur.fetchall()
         cur.close()
         conn.close()
 
-        # Fark: Hammurlab'da olup Hitit'te olmayan
+        # Fark: Hammurlab'da olup Hitit'te olmayan takip numaraları
         eksikler = [
             r for r in hamurlab_rows
-            if r["barkod"] not in hitit_barkodlar
+            if r["takip_no"] not in hitit_takip_nolari
         ]
 
-        # Tekrarları barkod bazında birleştir
+        # Tekrarları takip_no bazında birleştir
         goruldu = {}
         for r in eksikler:
-            b = r["barkod"]
-            if b not in goruldu:
-                goruldu[b] = {
-                    "barkod":   b,
-                    "urun_adi": r["urun_adi"] or "-",
-                    "marka":    r["marka"]    or "-",
-                    "kaynaklar": set(),
+            tn = r["takip_no"]
+            if tn not in goruldu:
+                goruldu[tn] = {
+                    "takip_no":   tn,
+                    "siparis_no": r["siparis_no"] or "-",
+                    "barkod":     r["barkod"]     or "-",
+                    "urun_adi":   r["urun_adi"]   or "-",
+                    "marka":      r["marka"]      or "-",
+                    "kaynaklar":  set(),
                 }
-            goruldu[b]["kaynaklar"].add(r["kaynak"])
+            goruldu[tn]["kaynaklar"].add(r["kaynak"])
 
         sonuc = []
         for v in goruldu.values():
@@ -347,8 +336,8 @@ def erp_barkod_uyari():
 
         return jsonify({
             "uyari_var": len(sonuc) > 0,
-            "eksik_barkod_sayisi": len(sonuc),
-            "hitit_barkod_sayisi": len(hitit_barkodlar),
+            "eksik_siparis_sayisi": len(sonuc),
+            "hitit_takip_sayisi": len(hitit_takip_nolari),
             "eksikler": sonuc[:100]   # Max 100 satır döndür
         })
 
@@ -432,9 +421,20 @@ def erp_upload():
 
         log_kayit = log_yaz(kaynak, data_type, dosya.filename, satir_sayisi, "basarili")
 
+        # ERP verisi yüklenince pipeline'ı arka planda çalıştır
+        import threading
+        def _pipeline_bg():
+            try:
+                from pipeline import tam_pipeline_calistir
+                tam_pipeline_calistir()
+                print(f"[AUTO-PIPELINE] {kaynak}/{data_type} sonrasi tamamlandi.")
+            except Exception as pe:
+                print(f"[AUTO-PIPELINE] HATA ({kaynak}/{data_type}): {pe}")
+        threading.Thread(target=_pipeline_bg, daemon=True).start()
+
         return jsonify({
             "basarili": True,
-            "mesaj": f"{satir_sayisi} satir basariyla yuklendi.",
+            "mesaj": f"{satir_sayisi} satir basariyla yuklendi. Karlılık özeti güncelleniyor...",
             "log": log_kayit
         })
 

@@ -59,7 +59,7 @@ def karlilik_liste():
     pazaryeri = request.args.get("pazaryeri")
     durum     = request.args.get("durum")       # zarar / karli / hepsi
     sayfa     = int(request.args.get("sayfa", 1))
-    limit     = int(request.args.get("limit", 50))
+    limit     = int(request.args.get("limit", 20))
     offset    = (sayfa - 1) * limit
 
     where  = ["1=1"]
@@ -77,7 +77,6 @@ def karlilik_liste():
     data_sql  = f"""
         SELECT
             siparis_no, pazaryeri_siparis_no, pazaryeri, siparis_durumu,
-            DATE_FORMAT(siparis_tarihi,'%d.%m.%Y') AS siparis_tarihi,
             barkod, urun_adi, satis_adeti,
             COALESCE(satis_tutari,0)                AS satis_tutari,
             COALESCE(urun_maliyeti,0)               AS urun_maliyeti,
@@ -89,7 +88,7 @@ def karlilik_liste():
             zarar_mi, mutabakat_durumu
         FROM karlilik_ozeti
         WHERE {w}
-        ORDER BY siparis_tarihi DESC
+        ORDER BY id DESC
         LIMIT %s OFFSET %s
     """
     conn = get_conn()
@@ -222,7 +221,6 @@ def mutabakat_liste():
             k.pazaryeri_siparis_no,
             k.barkod,
             k.urun_adi,
-            DATE_FORMAT(k.siparis_tarihi, '%d.%m.%Y') AS siparis_tarihi,
             k.siparis_durumu
         FROM mutabakat m
         LEFT JOIN karlilik_ozeti k ON k.id = m.siparis_id
