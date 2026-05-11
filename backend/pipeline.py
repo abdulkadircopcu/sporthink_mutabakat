@@ -13,7 +13,7 @@ import mysql.connector
 from decimal import Decimal
 from datetime import datetime
 
-from karlilik_hesaplama import get_db_connection, komisyon_taban_hesapla
+from karlilik_hesaplama import get_db_connection
 
 
 # ============================================================
@@ -382,111 +382,142 @@ def _sync_hepsiburada(cursor) -> int:
 # siparisler + fatura tablolarından karlilik_ozeti'ni doldurur.
 # ============================================================
 
+def _to_decimal(val) -> Decimal:
+    try:
+        return Decimal(str(val)) if val not in (None, "", "nan", "NaN") else Decimal("0")
+    except Exception:
+        return Decimal("0")
+
+
 def karlilik_ozeti_hesapla(pazaryeri: str = None) -> dict:
     """
-    siparisler tablosundaki her siparis icin:
-    - Fatura tablolarından komisyon ve kargo değerlerini çeker
-    - karlilik_ozeti tablosuna yazar
+    Kaynak: hamurlab_siparisler + hamurlab_iptal_iade + hitit_satislar + hitit_iadeler
+    - Satış tutarı ve komisyon → hamurlab_siparisler
+    - İptal/iade durumu        → hamurlab_iptal_iade (takip_no veya siparis_no ile eşleşme)
+    - Ürün maliyeti            → hitit_satislar (KDVsiz tutar, takip_no ile eşleşme)
+    - İade maliyeti            → hitit_iadeler  (KDVsiz tutar, takip_no ile eşleşme)
+    - net_kar = satis_tutari - komisyon - urun_maliyeti + iade_maliyeti
     """
-    from mutabakat import gerceklesen_degerler_hesapla
-
     conn        = get_db_connection()
-    dict_cursor = conn.cursor(dictionary=True)   # siparisler okuma için
-    sub_cursor  = conn.cursor()                  # fatura sorguları için (row[0] erişimi)
+    dict_cursor = conn.cursor(dictionary=True)
+    sub_cursor  = conn.cursor()
     ozet        = {"islem": 0, "hata": 0}
 
     try:
+        # ── Hammurlab siparişlerini çek ──
+        _sql = """
+            SELECT
+                hs.id,
+                COALESCE(hs.siparis_no, '')          AS siparis_no,
+                COALESCE(hs.takip_no,   '')          AS takip_no,
+                COALESCE(hs.magaza,     '')          AS pazaryeri,
+                COALESCE(hs.barkod,     '')          AS barkod,
+                COALESCE(hs.urun_adi,   '')          AS urun_adi,
+                COALESCE(hs.adet, 1)                 AS adet,
+                COALESCE(hs.toplam_fiyat, hs.fiyat, 0) AS satis_tutari,
+                COALESCE(hs.komisyon, 0)             AS komisyon,
+                -- İptal/iade var mı?
+                CASE WHEN hi.id IS NOT NULL THEN 'iade'
+                     ELSE COALESCE(hs.durum, 'teslim_edildi')
+                END AS siparis_durumu
+            FROM hamurlab_siparisler hs
+            LEFT JOIN hamurlab_iptal_iade hi
+                ON hi.takip_no IS NOT NULL
+               AND (hi.takip_no = hs.takip_no OR hi.siparis_no = hs.siparis_no)
+        """
         if pazaryeri:
-            dict_cursor.execute("""
-                SELECT id, siparis_no, pazaryeri_siparis_no, pazaryeri,
-                       barkod, urun_adi, durum, siparis_tarihi,
-                       toplam_tutar, birim_fiyat, adet, kdv_orani
-                FROM siparisler
-                WHERE pazaryeri = %s
-            """, (pazaryeri,))
+            dict_cursor.execute(_sql + " WHERE LOWER(hs.magaza) = LOWER(%s)", (pazaryeri,))
         else:
-            dict_cursor.execute("""
-                SELECT id, siparis_no, pazaryeri_siparis_no, pazaryeri,
-                       barkod, urun_adi, durum, siparis_tarihi,
-                       toplam_tutar, birim_fiyat, adet, kdv_orani
-                FROM siparisler
-            """)
+            dict_cursor.execute(_sql)
 
         siparisler = dict_cursor.fetchall()
 
         for s in siparisler:
             try:
-                # Fatura tablolarından gerçekleşen değerleri çek (normal cursor ile)
-                gercek = gerceklesen_degerler_hesapla(
-                    sub_cursor,
-                    pazaryeri_siparis_no = s["pazaryeri_siparis_no"],
-                    pazaryeri            = s["pazaryeri"],
-                )
+                siparis_no = s["siparis_no"]
+                takip_no   = s["takip_no"] or siparis_no
 
-                # Beklenen komisyon tabanı
-                komisyon_taban = komisyon_taban_hesapla(
-                    pazaryeri       = s["pazaryeri"],
-                    indirimli_fiyat = Decimal(str(s["birim_fiyat"] or 0)),
-                    toplam_tutar    = Decimal(str(s["toplam_tutar"] or 0)),
-                )
+                # Hitit satışlardan ürün maliyeti (KDVsiz)
+                sub_cursor.execute("""
+                    SELECT COALESCE(SUM(CAST(urun_tutari_kdvsiz AS DECIMAL(15,4))), 0)
+                    FROM hitit_satislar
+                    WHERE takip_no = %s OR siparis_no = %s
+                """, (takip_no, siparis_no))
+                urun_maliyeti = _to_decimal(sub_cursor.fetchone()[0])
+
+                # Hitit iadelerden geri dönen maliyet
+                sub_cursor.execute("""
+                    SELECT COALESCE(SUM(CAST(urun_tutari_kdvsiz AS DECIMAL(15,4))), 0)
+                    FROM hitit_iadeler
+                    WHERE takip_no = %s OR siparis_no = %s
+                """, (takip_no, siparis_no))
+                iade_maliyeti = _to_decimal(sub_cursor.fetchone()[0])
+
+                satis_tutari = _to_decimal(s["satis_tutari"])
+                komisyon     = _to_decimal(s["komisyon"])
+
+                # net_kar = gelir - komisyon - maliyet + iade_maliyeti(geri kazanılan)
+                net_gelir = satis_tutari - komisyon
+                net_kar   = net_gelir - urun_maliyeti + iade_maliyeti
+                kar_marji = float(net_kar / satis_tutari * 100) if satis_tutari > 0 else 0.0
+                zarar_mi  = 1 if net_kar < 0 else 0
 
                 sub_cursor.execute("""
                     INSERT INTO karlilik_ozeti (
                         siparis_id, siparis_no, pazaryeri_siparis_no,
                         pazaryeri, barkod, urun_adi,
-                        siparis_durumu, siparis_tarihi,
-                        siparis_toplam_tutari, pazaryeri_fiyati,
+                        siparis_durumu,
+                        satis_adeti, siparis_toplam_tutari, pazaryeri_fiyati,
+                        satis_tutari, urun_maliyeti,
                         faturalanan_komisyon_tutari,
-                        faturalanan_desi_tutari,
-                        faturalanan_desi,
-                        satis_kargosu,
-                        iade_kargosu,
+                        satis_kargosu, iade_kargosu,
+                        faturalanan_desi_tutari, faturalanan_desi,
+                        net_gelir, net_kar, kar_marji, zarar_mi,
                         mutabakat_durumu
                     )
                     VALUES (
-                        %(siparis_id)s, %(siparis_no)s, %(pazaryeri_siparis_no)s,
+                        %(siparis_id)s, %(siparis_no)s, %(siparis_no)s,
                         %(pazaryeri)s, %(barkod)s, %(urun_adi)s,
-                        %(siparis_durumu)s, %(siparis_tarihi)s,
-                        %(siparis_toplam_tutari)s, %(pazaryeri_fiyati)s,
-                        %(faturalanan_komisyon_tutari)s,
-                        %(faturalanan_desi_tutari)s,
-                        %(faturalanan_desi)s,
-                        %(satis_kargosu)s,
-                        %(iade_kargosu)s,
+                        %(siparis_durumu)s,
+                        %(adet)s, %(satis_tutari)s, %(satis_tutari)s,
+                        %(satis_tutari)s, %(urun_maliyeti)s,
+                        %(komisyon)s,
+                        0, 0, 0, 0,
+                        %(net_gelir)s, %(net_kar)s, %(kar_marji)s, %(zarar_mi)s,
                         'beklemede'
                     )
                     ON DUPLICATE KEY UPDATE
+                        siparis_durumu              = VALUES(siparis_durumu),
+                        satis_tutari                = VALUES(satis_tutari),
+                        urun_maliyeti               = VALUES(urun_maliyeti),
                         faturalanan_komisyon_tutari = VALUES(faturalanan_komisyon_tutari),
-                        faturalanan_desi_tutari     = VALUES(faturalanan_desi_tutari),
-                        faturalanan_desi            = VALUES(faturalanan_desi),
-                        satis_kargosu               = VALUES(satis_kargosu),
-                        iade_kargosu                = VALUES(iade_kargosu),
-                        mutabakat_durumu            = VALUES(mutabakat_durumu),
+                        net_gelir                   = VALUES(net_gelir),
+                        net_kar                     = VALUES(net_kar),
+                        kar_marji                   = VALUES(kar_marji),
+                        zarar_mi                    = VALUES(zarar_mi),
                         son_hesaplama_tarihi        = NOW()
                 """, {
-                    "siparis_id":                  s["id"],
-                    "siparis_no":                  s["siparis_no"],
-                    "pazaryeri_siparis_no":         s["pazaryeri_siparis_no"],
-                    "pazaryeri":                   s["pazaryeri"],
-                    "barkod":                      s["barkod"] or "",
-                    "urun_adi":                    s["urun_adi"],
-                    "siparis_durumu":              s["durum"],
-                    "siparis_tarihi":              s["siparis_tarihi"],
-                    "siparis_toplam_tutari":        s["toplam_tutar"] or 0,
-                    "pazaryeri_fiyati":             s["toplam_tutar"] or 0,
-                    "faturalanan_komisyon_tutari":  gercek["faturalanan_komisyon"],
-                    "faturalanan_desi_tutari":      (gercek["faturalanan_satis_kargosu"]
-                                                    + gercek["faturalanan_iade_kargosu"]),
-                    "faturalanan_desi":             gercek["faturalanan_desi"],
-                    "satis_kargosu":               gercek["faturalanan_satis_kargosu"],
-                    "iade_kargosu":                gercek["faturalanan_iade_kargosu"],
+                    "siparis_id":    s["id"],
+                    "siparis_no":    siparis_no,
+                    "pazaryeri":     s["pazaryeri"],
+                    "barkod":        s["barkod"],
+                    "urun_adi":      s["urun_adi"],
+                    "siparis_durumu": s["siparis_durumu"],
+                    "adet":          int(s["adet"] or 1),
+                    "satis_tutari":  float(satis_tutari),
+                    "urun_maliyeti": float(urun_maliyeti),
+                    "komisyon":      float(komisyon),
+                    "net_gelir":     float(net_gelir),
+                    "net_kar":       float(net_kar),
+                    "kar_marji":     kar_marji,
+                    "zarar_mi":      zarar_mi,
                 })
                 ozet["islem"] += 1
 
             except Exception as e:
                 ozet["hata"] += 1
                 import traceback
-                print(f"  [HATA] {s['pazaryeri_siparis_no']}: {e}")
+                print(f"  [HATA] {s.get('siparis_no', '?')}: {e}")
                 traceback.print_exc()
 
         conn.commit()
@@ -507,8 +538,7 @@ def karlilik_ozeti_hesapla(pazaryeri: str = None) -> dict:
 
 def tam_pipeline_calistir(pazaryeri: str = None) -> dict:
     """
-    1. Pazaryeri tablolarından siparisler'i doldurur
-    2. Karlilik ozetini hesaplar ve yazar
+    hamurlab_siparisler kaynakli karlilik_ozeti hesaplar ve yazar.
     Kullanim: tam_pipeline_calistir("Trendyol")
               tam_pipeline_calistir()  # tum pazaryerler
     """
@@ -518,10 +548,7 @@ def tam_pipeline_calistir(pazaryeri: str = None) -> dict:
         print(f"  Pazaryeri: {pazaryeri}")
     print(f"{'='*55}")
 
-    print("\n[ADIM 1] siparisler sync ediliyor...")
-    sync_ozet = siparisler_sync(pazaryeri)
-
-    print("\n[ADIM 2] karlilik_ozeti hesaplaniyor...")
+    print("\n[ADIM 1] karlilik_ozeti hesaplaniyor (kaynak: hamurlab_siparisler)...")
     karlilik_ozet = karlilik_ozeti_hesapla(pazaryeri)
 
     print(f"\n{'='*55}")
@@ -530,8 +557,7 @@ def tam_pipeline_calistir(pazaryeri: str = None) -> dict:
     print(f"{'='*55}\n")
 
     return {
-        "siparisler_sync": sync_ozet,
-        "karlilik_ozeti":  karlilik_ozet,
+        "karlilik_ozeti": karlilik_ozet,
     }
 
 

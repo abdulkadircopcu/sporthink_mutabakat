@@ -23,10 +23,6 @@ def pipeline_calistir():
             "basarili": True,
             "pazaryeri": pazaryeri or "Tumu",
             "sonuc": {
-                "siparisler_sync": {
-                    pz: {"upsert": v["upsert"], "hata": bool(v["hata"])}
-                    for pz, v in sonuc["siparisler_sync"].items()
-                },
                 "karlilik_ozeti": sonuc["karlilik_ozeti"],
             }
         })
@@ -43,22 +39,22 @@ def pipeline_durum():
     conn   = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT COUNT(*) FROM siparisler")
+        cursor.execute("SELECT COUNT(*) FROM hamurlab_siparisler")
         siparis_sayisi = cursor.fetchone()[0]
 
         cursor.execute("SELECT COUNT(*) FROM karlilik_ozeti")
         ozet_sayisi = cursor.fetchone()[0]
 
         cursor.execute("""
-            SELECT pazaryeri, COUNT(*) as n
-            FROM siparisler
-            GROUP BY pazaryeri
+            SELECT magaza, COUNT(*) as n
+            FROM hamurlab_siparisler
+            GROUP BY magaza
             ORDER BY n DESC
         """)
         pazaryeri_dagilimi = {row[0]: row[1] for row in cursor.fetchall()}
 
         return jsonify({
-            "siparisler":          siparis_sayisi,
+            "hamurlab_siparisler": siparis_sayisi,
             "karlilik_ozeti":      ozet_sayisi,
             "pazaryeri_dagilimi":  pazaryeri_dagilimi,
         })
