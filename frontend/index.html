@@ -24,16 +24,13 @@
         </div>
       </div>
       <nav id="mainNav" class="main-nav"></nav>
-      <div id="apiStatus" class="api-status checking">
-        <span class="status-dot"></span>
-        <span class="status-text">Bağlanıyor...</span>
-      </div>
+      <div class="header-right"></div>
     </div>
   </header>
 
   <main class="main">
 
-    <!-- Sol Panel: Yükleme Formu -->
+    <!-- SOL SÜTUN: Pazaryeri -->
     <section class="upload-panel">
 
       <!-- Pazaryeri Bölüm Başlığı -->
@@ -97,9 +94,23 @@
         <div id="resultBox" class="result-box" style="display:none;"></div>
       </div>
 
+      <!-- Yükleme Geçmişi -->
+      <div class="card log-card">
+        <div class="card-header log-header">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="log-icon">📋</span>
+            <h2>Yükleme Geçmişi</h2>
+          </div>
+          <button id="refreshLogsBtn" class="refresh-btn" title="Yenile">↻</button>
+        </div>
+        <div id="logList" class="log-list">
+          <div class="log-empty">Henüz yükleme yapılmadı.</div>
+        </div>
+      </div>
+
     </section>
 
-    <!-- ERP Yükleme Bölümü -->
+    <!-- SAĞ SÜTUN: ERP -->
     <section class="upload-panel erp-panel">
 
       <!-- ERP Başlık -->
@@ -107,33 +118,6 @@
         <div class="erp-divider-line"></div>
         <div class="erp-divider-label">🏭 ERP Sistemi</div>
         <div class="erp-divider-line"></div>
-      </div>
-
-      <!-- Barkod Uyarı Paneli -->
-      <div id="erpBarkodUyari" class="erp-uyari-panel" style="display:none;">
-        <div class="erp-uyari-header" id="erpUyariToggle">
-          <div class="erp-uyari-icon-text">
-            <span class="erp-uyari-icon">⚠️</span>
-            <div>
-              <div class="erp-uyari-baslik">Hammurlab'da eşleşmeyen barkodlar</div>
-              <div id="erpUyariAciklama" class="erp-uyari-aciklama"></div>
-            </div>
-          </div>
-          <span id="erpUyariCaret" class="erp-uyari-caret">▼</span>
-        </div>
-        <div id="erpUyariDetay" class="erp-uyari-detay" style="display:none;">
-          <table class="data-table erp-uyari-tablo">
-            <thead>
-              <tr>
-                <th>Barkod</th>
-                <th>Ürün Adı</th>
-                <th>Marka</th>
-                <th>Kaynak</th>
-              </tr>
-            </thead>
-            <tbody id="erpUyariTbody"></tbody>
-          </table>
-        </div>
       </div>
 
       <!-- ERP Kaynak Seçimi -->
@@ -190,22 +174,34 @@
         <div id="erpResultBox" class="result-box" style="display:none;"></div>
       </div>
 
-    </section>
-
-    <!-- Sağ Panel: Log -->
-    <section class="log-panel">
-      <div class="card log-card">
-        <div class="card-header log-header">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <span class="log-icon">📋</span>
-            <h2>Yükleme Geçmişi</h2>
+      <!-- Hammurlab Barkod Uyarı Paneli -->
+      <div id="erpBarkodUyari" class="erp-uyari-panel" style="display:none;">
+        <div class="erp-uyari-header" id="erpUyariToggle">
+          <div class="erp-uyari-icon-text">
+            <span class="erp-uyari-icon">⚠️</span>
+            <div>
+              <div class="erp-uyari-baslik">Hammurlab'da eşleşmeyen</div>
+              <div id="erpUyariAciklama" class="erp-uyari-aciklama"></div>
+            </div>
           </div>
-          <button id="refreshLogsBtn" class="refresh-btn" title="Yenile">↻</button>
+          <span id="erpUyariCaret" class="erp-uyari-caret">▼</span>
         </div>
-        <div id="logList" class="log-list">
-          <div class="log-empty">Henüz yükleme yapılmadı.</div>
+        <div id="erpUyariDetay" class="erp-uyari-detay" style="display:none;">
+          <table class="data-table erp-uyari-tablo">
+            <thead>
+              <tr>
+                <th>Takip No</th>
+                <th>Sipariş No</th>
+                <th>Ürün Adı</th>
+                <th>Marka</th>
+                <th>Kaynak</th>
+              </tr>
+            </thead>
+            <tbody id="erpUyariTbody"></tbody>
+          </table>
         </div>
       </div>
+
     </section>
 
   </main>

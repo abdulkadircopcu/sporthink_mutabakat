@@ -22,11 +22,12 @@ async function erpBarkodUyariYukle() {
     }
 
     panel.style.display = "block";
-    acik.textContent = `${data.eksik_barkod_sayisi} barkod Hammurlab'da var ama Hitit'te yok — tıkla / detay gör`;
+    acik.textContent = `${data.eksik_siparis_sayisi} sipariş Hammurlab'da var ama Hitit'te yok — tıkla / detay gör`;
 
     tbody.innerHTML = data.eksikler.map(e => `
       <tr>
-        <td class="mono">${e.barkod}</td>
+        <td class="mono">${e.takip_no}</td>
+        <td class="mono">${e.siparis_no}</td>
         <td>${e.urun_adi}</td>
         <td>${e.marka}</td>
         <td>${e.kaynaklar.map(k => k === "siparisler" ? "📦 Sipariş" : "↩️ İptal/İade").join(", ")}</td>

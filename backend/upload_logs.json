@@ -1,5 +1,149 @@
 [
   {
+    "tarih": "11.05.2026 22:30:14",
+    "marketplace": "hitit",
+    "data_type": "satislar",
+    "dosya": "hitit_satis_ornek.xlsx",
+    "satir_sayisi": 50,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "11.05.2026 22:30:04",
+    "marketplace": "hammurlab",
+    "data_type": "siparisler",
+    "dosya": "hamurlab_siparis_ornek.xlsx",
+    "satir_sayisi": 50,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "11.05.2026 22:16:38",
+    "marketplace": "flo",
+    "data_type": "fatura_detay",
+    "dosya": "fatura_detay_09-01-2025_11-12 (1).xlsx",
+    "satir_sayisi": 2,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "11.05.2026 22:08:12",
+    "marketplace": "flo",
+    "data_type": "fatura_detay",
+    "dosya": "fatura_detay_09-01-2025_11-12 (1).xlsx",
+    "satir_sayisi": 2,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "11.05.2026 22:08:03",
+    "marketplace": "flo",
+    "data_type": "fatura_detay",
+    "dosya": "fatura_detay_09-01-2025_11-12 (1).xlsx",
+    "satir_sayisi": 2,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "11.05.2026 22:07:49",
+    "marketplace": "flo",
+    "data_type": "fatura_detay",
+    "dosya": "fatura_detay_09-01-2025_11-12 (1).xlsx",
+    "satir_sayisi": 2,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "11.05.2026 22:05:18",
+    "marketplace": "flo",
+    "data_type": "fatura_detay",
+    "dosya": "fatura_detay_09-01-2025_11-12 (1).xlsx",
+    "satir_sayisi": 2,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "11.05.2026 22:05:15",
+    "marketplace": "flo",
+    "data_type": "fatura_detay",
+    "dosya": "fatura_detay_09-01-2025_11-12 (1).xlsx",
+    "satir_sayisi": 2,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "11.05.2026 22:03:14",
+    "marketplace": "flo",
+    "data_type": "fatura_detay",
+    "dosya": "fatura_detay_09-01-2025_11-12 (1).xlsx",
+    "satir_sayisi": 2,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "11.05.2026 22:02:00",
+    "marketplace": "flo",
+    "data_type": "fatura_detay",
+    "dosya": "fatura_detay_09-01-2025_11-12 (1).xlsx",
+    "satir_sayisi": 2,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "11.05.2026 22:01:24",
+    "marketplace": "amazon",
+    "data_type": "islemler",
+    "dosya": "01.03.2026 - 31.03.2026 dönemi ile ilgili işlemler.xlsx",
+    "satir_sayisi": 5,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "11.05.2026 21:55:28",
+    "marketplace": "amazon",
+    "data_type": "islemler",
+    "dosya": "01.03.2026 - 31.03.2026 dönemi ile ilgili işlemler.xlsx",
+    "satir_sayisi": 5,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "11.05.2026 21:54:19",
+    "marketplace": "hitit",
+    "data_type": "satislar",
+    "dosya": "hitit_satis_ornek.xlsx",
+    "satir_sayisi": 50,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "11.05.2026 21:31:18",
+    "marketplace": "hammurlab",
+    "data_type": "siparisler",
+    "dosya": "hamurlab_siparis_ornek.xlsx",
+    "satir_sayisi": 50,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "11.05.2026 21:19:31",
+    "marketplace": "hammurlab",
+    "data_type": "siparisler",
+    "dosya": "hamurlab_siparis_ornek.xlsx",
+    "satir_sayisi": 50,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "11.05.2026 21:15:48",
+    "marketplace": "hitit",
+    "data_type": "satislar",
+    "dosya": "hitit_satis_ornek.xlsx",
+    "satir_sayisi": 50,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
     "tarih": "10.05.2026 22:10:52",
     "marketplace": "hitit",
     "data_type": "iadeler",
