@@ -21,6 +21,7 @@
       min-height:100vh; display:flex; align-items:center; justify-content:center;
       background-image: radial-gradient(ellipse at 20% 50%, rgba(88,166,255,0.06) 0%, transparent 60%),
                         radial-gradient(ellipse at 80% 20%, rgba(163,113,247,0.05) 0%, transparent 50%);
+      padding-top:70px;
     }
 
     /* Login kart */
@@ -33,13 +34,35 @@
       to   { opacity:1; transform:translateY(0); }
     }
 
+    /* Header navbar */
+    .navbar {
+      position:fixed; top:0; left:0; right:0; height:70px;
+      background:rgba(22, 27, 34, 0.8); backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--border); display:flex; align-items:center; 
+      padding:0 24px; z-index:1000;
+    }
+    .navbar-logo {
+      display:flex; align-items:center; gap:12px; text-decoration:none; color:var(--text);
+    }
+    .navbar-logo img {
+      width:32px; height:32px; object-fit:contain;
+    }
+    .navbar-logo-text {
+      display:flex; flex-direction:column; gap:2px;
+    }
+    .navbar-logo-title {
+      font-size:14px; font-weight:700; color:var(--text);
+    }
+    .navbar-logo-sub {
+      font-size:11px; color:var(--text-muted);
+    }
+
     /* Logo alanı */
     .login-logo {
       text-align:center; margin-bottom:32px;
     }
-    .login-logo-icon {
-      font-size:40px; display:block; margin-bottom:12px;
-      filter: drop-shadow(0 0 20px rgba(88,166,255,0.4));
+    .login-logo-img {
+      width:65px; height:65px; object-fit:contain; margin-bottom:12px;
     }
     .login-logo-title {
       font-size:22px; font-weight:700; color:var(--text);
@@ -128,10 +151,15 @@
 </head>
 <body>
 
+  <!-- Header Navbar -->
+  <nav class="navbar">
+  </nav>
+
   <div class="login-wrap">
+
     <!-- Logo -->
     <div class="login-logo">
-      <span class="login-logo-icon">⚡</span>
+      <img src="images/sporthink_logo.png" alt="Sporthink Logo" class="login-logo-img"/>
       <div class="login-logo-title">Sporthink Mutabakat</div>
       <div class="login-logo-sub">E-Ticaret Analiz Platformu</div>
     </div>

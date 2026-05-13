@@ -151,6 +151,20 @@ def pazaryeri_karsilastirma():
     return jsonify(rows)
 
 
+# ── Mutabakat Hesapla (Toplu) ──
+@analiz_bp.route("/mutabakat/hesapla", methods=["POST"])
+def mutabakat_hesapla():
+    import mutabakat as mut_module
+    pazaryeri = None
+    if request.is_json and request.json:
+        pazaryeri = request.json.get("pazaryeri")
+    try:
+        ozet = mut_module.toplu_mutabakat_hesapla(pazaryeri)
+        return jsonify({"basarili": True, "ozet": ozet})
+    except Exception as e:
+        return jsonify({"basarili": False, "hata": str(e)}), 500
+
+
 # ── Mutabakat Özeti ──
 @analiz_bp.route("/mutabakat/ozet", methods=["GET"])
 def mutabakat_ozet():

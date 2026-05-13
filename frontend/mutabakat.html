@@ -14,7 +14,7 @@
   <header class="header">
     <div class="header-inner">
       <div class="logo">
-        <span class="logo-icon">⚡</span>
+        <img src="images/sporthink_logo.png" alt="Sporthink Logo"/>
         <div>
           <div class="logo-title">Sporthink Mutabakat</div>
           <div class="logo-sub">E-Ticaret Analiz Platformu</div>
@@ -76,15 +76,8 @@
           <option value="beklemede">Beklemede</option>
         </select>
       </div>
-      <div class="filter-group">
-        <label class="filter-label">Sayfa Başı</label>
-        <select id="filtLimit" class="filter-select">
-          <option value="25">25</option>
-          <option value="50" selected>50</option>
-          <option value="100">100</option>
-        </select>
-      </div>
       <button id="filtBtn" class="filter-btn">🔍 Filtrele</button>
+      <button id="mutabakatYapBtn" class="filter-btn btn-primary">⚡ Mutabakat Yap</button>
     </div>
 
     <!-- Tam Mutabakat Tablosu -->
@@ -123,12 +116,7 @@
           </tbody>
         </table>
       </div>
-      <!-- Sayfalama -->
-      <div class="pagination" id="mutabakatPagination" style="display:none;">
-        <button class="page-btn" id="prevBtn">‹ Önceki</button>
-        <span class="page-info" id="pageInfo">—</span>
-        <button class="page-btn" id="nextBtn">Sonraki ›</button>
-      </div>
+      <div class="pagination" id="mutabakatPagination"></div>
     </div>
 
   </main>

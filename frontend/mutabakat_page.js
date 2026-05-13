@@ -16,6 +16,7 @@ const fmtF = (n) => {
   return `<span style="color:var(--text-muted)">0,00 ₺</span>`;
 };
 
+const LIMIT = 10;
 let suankiSayfa = 1;
 
 // ── Özet Kartları ──
@@ -46,9 +47,8 @@ async function loadMutabakatListe(sayfa = 1) {
   suankiSayfa = sayfa;
   const pazaryeri = document.getElementById("filtPazaryeri").value;
   const durum     = document.getElementById("filtDurum").value;
-  const limit     = document.getElementById("filtLimit").value;
 
-  const params = new URLSearchParams({ sayfa, limit });
+  const params = new URLSearchParams({ sayfa, limit: LIMIT });
   if (pazaryeri) params.append("pazaryeri", pazaryeri);
   if (durum)     params.append("durum",     durum);
 
@@ -64,7 +64,7 @@ async function loadMutabakatListe(sayfa = 1) {
 
     if (!data.veriler.length) {
       body.innerHTML = `<tr><td colspan="19" class="table-empty">Sonuç bulunamadı.</td></tr>`;
-      document.getElementById("mutabakatPagination").style.display = "none";
+      document.getElementById("mutabakatPagination").innerHTML = "";
       return;
     }
 
@@ -96,27 +96,67 @@ async function loadMutabakatListe(sayfa = 1) {
         </tr>`;
     }).join("");
 
-    // Sayfalama
-    const toplamSayfa = Math.ceil(data.toplam / limit);
-    const pag = document.getElementById("mutabakatPagination");
-    pag.style.display = toplamSayfa > 1 ? "flex" : "none";
-    document.getElementById("pageInfo").textContent = `Sayfa ${sayfa} / ${toplamSayfa}`;
-    document.getElementById("prevBtn").disabled = sayfa <= 1;
-    document.getElementById("nextBtn").disabled = sayfa >= toplamSayfa;
+    renderMutabakatPagination(data.toplam, sayfa);
 
   } catch(e) {
     body.innerHTML = `<tr><td colspan="19" class="table-empty" style="color:var(--red)">Hata: ${e.message}</td></tr>`;
   }
 }
 
+function renderMutabakatPagination(toplam, current) {
+  const totalPages = Math.ceil(toplam / LIMIT);
+  const el = document.getElementById("mutabakatPagination");
+  if (totalPages <= 1) { el.innerHTML = ""; return; }
+
+  const pages = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (current > 3) pages.push("…");
+    for (let i = Math.max(2, current - 1); i <= Math.min(totalPages - 1, current + 1); i++) pages.push(i);
+    if (current < totalPages - 2) pages.push("…");
+    pages.push(totalPages);
+  }
+
+  el.innerHTML = pages.map(p =>
+    p === "…"
+      ? `<span class="page-ellipsis">…</span>`
+      : `<button type="button" class="page-btn${p === current ? " active" : ""}" onclick="loadMutabakatListe(${p})">${p}</button>`
+  ).join("");
+}
+
 // ── Event Listeners ──
 document.getElementById("filtBtn").addEventListener("click", () => loadMutabakatListe(1));
 
-document.getElementById("prevBtn").addEventListener("click", () => {
-  if (suankiSayfa > 1) loadMutabakatListe(suankiSayfa - 1);
-});
-document.getElementById("nextBtn").addEventListener("click", () => {
-  loadMutabakatListe(suankiSayfa + 1);
+document.getElementById("mutabakatYapBtn").addEventListener("click", async () => {
+  const btn = document.getElementById("mutabakatYapBtn");
+  btn.disabled = true;
+  btn.textContent = "⏳ İşleniyor...";
+
+  try {
+    const r    = await fetch(`${API_BASE}/mutabakat/hesapla`, { method: "POST" });
+    const data = await r.json();
+
+    if (data.basarili) {
+      const o = data.ozet;
+      alert(
+        `Mutabakat tamamlandı!\n\n` +
+        `Toplam  : ${o.toplam}\n` +
+        `Eşleşti : ${o.eslesdi}\n` +
+        `Fark Var: ${o.fark_var}`
+      );
+      loadMutabakatOzet();
+      loadMutabakatListe(1);
+    } else {
+      alert(`Hata: ${data.hata}`);
+    }
+  } catch (e) {
+    alert(`Bağlantı hatası: ${e.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "⚡ Mutabakat Yap";
+  }
 });
 
 // ── Init ──

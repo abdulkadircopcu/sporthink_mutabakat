@@ -26,7 +26,7 @@ async function loadOzet(filters = {}) {
 }
 
 async function loadListe(filters = {}, sayfa = 1) {
-  const params = new URLSearchParams({ ...filters, sayfa, limit: 20 }).toString();
+  const params = new URLSearchParams({ ...filters, sayfa, limit: 10 }).toString();
   const body = document.getElementById("karlilikBody");
   body.innerHTML = `<tr><td colspan="13" class="table-empty">Yukleniyor...</td></tr>`;
 
@@ -92,7 +92,7 @@ function truncate(str, len) {
 }
 
 function renderPagination(toplam, current) {
-  const totalPages = Math.ceil(toplam / 20);
+  const totalPages = Math.ceil(toplam / 10);
   const el = document.getElementById("pagination");
   if (totalPages <= 1) { el.innerHTML = ""; return; }
 

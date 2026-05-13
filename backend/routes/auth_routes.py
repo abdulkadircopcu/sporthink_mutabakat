@@ -48,9 +48,7 @@ def token_dogrula(token):
         key = jwk.OctetJWK(JWT_SECRET.encode())
         jwt_instance = jwt.JWT()
         return jwt_instance.decode(token, key, algorithms={JWT_ALGO})
-    except jwt.exceptions.ExpiredSignatureError:
-        return None
-    except jwt.exceptions.InvalidTokenError:
+    except jwt.exceptions.DecodeError:
         return None
     except Exception:
         return None

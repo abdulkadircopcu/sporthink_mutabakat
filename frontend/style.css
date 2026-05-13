@@ -11,16 +11,17 @@
 body { font-family: 'Inter',sans-serif; background: var(--bg); color: var(--text); min-height:100vh; }
 
 /* Header */
-.header { background:var(--bg2); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; }
+.header { background:var(--bg2); border-bottom:1px solid var(--border); position:fixed; top:0; left:0; right:0; z-index:100; }
 .header-inner { max-width:1400px; margin:0 auto; padding:12px 28px; display:flex; align-items:center; gap:16px; }
 .logo { display:flex; align-items:center; gap:12px; flex:1; }
+.logo img { width:65px; height:65px; object-fit:contain; }
 .logo-icon { font-size:28px; }
 .logo-title { font-size:16px; font-weight:700; }
 .logo-sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
 /* Layout */
-.main { max-width:1400px; margin:0 auto; padding:28px; display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+.main { max-width:1400px; margin:70px auto 0; padding:28px; display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
 @media(max-width:1100px){.main{grid-template-columns:1fr;}}
 
 /* Card */
@@ -102,7 +103,7 @@ body { font-family: 'Inter',sans-serif; background: var(--bg); color: var(--text
 .header-right { flex:1; display:flex; align-items:center; justify-content:flex-end; }
 
 /* ── Page Layout (Analiz/Mutabakat sayfaları) ── */
-.page-main { max-width:1400px; margin:0 auto; padding:28px; }
+.page-main { max-width:1400px; margin:70px auto 0; padding:28px; }
 
 /* ── Filter Bar ── */
 .filter-bar { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; padding:20px 24px; }
@@ -112,6 +113,9 @@ body { font-family: 'Inter',sans-serif; background: var(--bg); color: var(--text
 .filter-select:focus,.filter-input:focus { border-color:var(--accent); }
 .filter-btn { padding:9px 20px; background:var(--accent); color:#0d1117; border:none; border-radius:7px; font-size:13px; font-weight:700; cursor:pointer; align-self:flex-end; transition:all 0.15s; }
 .filter-btn:hover { background:#79b8ff; }
+.filter-btn.btn-primary { background:var(--green); color:#0d1117; }
+.filter-btn.btn-primary:hover { filter:brightness(1.15); }
+.filter-btn:disabled { opacity:0.55; cursor:not-allowed; }
 
 /* ── Stat Cards ── */
 .stat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:16px; margin-bottom:24px; }
