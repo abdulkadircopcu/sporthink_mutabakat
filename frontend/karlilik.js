@@ -12,14 +12,16 @@ async function loadOzet(filters = {}) {
   try {
     const r = await fetch(`${API_BASE}/karlilik/ozet?${params}`);
     const d = await r.json();
-    document.getElementById("statSiparis").textContent = d.toplam_siparis ?? "—";
-    document.getElementById("statCiro").textContent    = fmtCur(d.toplam_ciro);
-    document.getElementById("statKar").textContent     = fmtCur(d.toplam_kar);
-    document.getElementById("statMarj").textContent    = fmt(d.ort_kar_marji) + "%";
-    document.getElementById("statZarar").textContent   = d.zarar_siparis ?? "—";
+    document.getElementById("statKar").textContent      = fmtCur(d.toplam_kar);
+    document.getElementById("statMarj").textContent     = fmt(d.ort_kar_marji) + "%";
+    document.getElementById("statZarar").textContent    = (d.zarar_siparis ?? 0).toLocaleString("tr-TR");
+    document.getElementById("statCiro").textContent     = fmtCur(d.toplam_ciro);
+    document.getElementById("statMaliyet").textContent  = fmtCur(d.toplam_maliyet);
+    document.getElementById("statKomisyon").textContent = fmtCur(d.toplam_komisyon);
+    document.getElementById("statKargo").textContent    = fmtCur(d.toplam_kargo);
 
-    const karEl = document.getElementById("statKar");
-    karEl.style.color = d.toplam_kar >= 0 ? "var(--green)" : "var(--red)";
+    document.getElementById("statKar").style.color = d.toplam_kar >= 0 ? "var(--green)" : "var(--red)";
+    document.getElementById("statMarj").style.color = d.ort_kar_marji >= 0 ? "var(--green)" : "var(--red)";
   } catch(e) {
     console.error("Özet yüklenemedi:", e);
   }
@@ -121,10 +123,14 @@ function goPage(p) {
 }
 
 function getFilters() {
-  return {
-    pazaryeri: document.getElementById("filterPazaryeri").value,
-    durum:     document.getElementById("filterDurum").value,
+  const f = {
+    pazaryeri:   document.getElementById("filterPazaryeri").value,
+    durum:       document.getElementById("filterDurum").value,
+    bas_tarih:   document.getElementById("filterBasTarih").value,
+    bit_tarih:   document.getElementById("filterBitTarih").value,
   };
+  Object.keys(f).forEach(k => { if (!f[k]) delete f[k]; });
+  return f;
 }
 
 document.getElementById("filterBtn").addEventListener("click", () => {
@@ -132,6 +138,17 @@ document.getElementById("filterBtn").addEventListener("click", () => {
   currentPage    = 1;
   loadOzet(currentFilters);
   loadListe(currentFilters, 1);
+});
+
+document.getElementById("filterSifirlaBtn").addEventListener("click", () => {
+  document.getElementById("filterPazaryeri").value = "";
+  document.getElementById("filterDurum").value = "";
+  document.getElementById("filterBasTarih").value = "";
+  document.getElementById("filterBitTarih").value = "";
+  currentFilters = {};
+  currentPage    = 1;
+  loadOzet();
+  loadListe();
 });
 
 // İlk yükleme

@@ -215,6 +215,34 @@ function renderLogs(logs) {
   }).join("");
 }
 
+// ── Pipeline ──
+document.getElementById("pipelineBtn").addEventListener("click", async () => {
+  const btn    = document.getElementById("pipelineBtn");
+  const durum  = document.getElementById("pipelineDurum");
+  btn.disabled = true;
+  btn.textContent = "⏳ Çalışıyor...";
+  durum.textContent = "";
+
+  try {
+    const r    = await fetch(`${API_BASE}/pipeline/calistir`, { method: "POST" });
+    const data = await r.json();
+    if (data.basarili) {
+      const o = data.sonuc.karlilik_ozeti;
+      durum.textContent = `✅ Tamamlandı — ${o.islem} kayıt işlendi, ${o.hata} hata`;
+      durum.style.color = o.hata > 0 ? "var(--yellow)" : "var(--green)";
+    } else {
+      durum.textContent = `❌ Hata: ${data.hata}`;
+      durum.style.color = "var(--red)";
+    }
+  } catch(e) {
+    durum.textContent = `❌ Sunucuya ulaşılamadı: ${e.message}`;
+    durum.style.color = "var(--red)";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "▶ Pipeline Çalıştır";
+  }
+});
+
 // ── Init ──
 document.getElementById("uploadBtn").addEventListener("click", upload);
 document.getElementById("refreshLogsBtn").addEventListener("click", loadLogs);

@@ -48,15 +48,34 @@
           <option value="zarar">Zarar</option>
         </select>
       </div>
-      <button id="filterBtn" class="filter-btn">Filtrele</button>
+      <div class="filter-group">
+        <label class="filter-label">Başlangıç Tarihi</label>
+        <input type="date" id="filterBasTarih" class="filter-input" />
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Bitiş Tarihi</label>
+        <input type="date" id="filterBitTarih" class="filter-input" />
+      </div>
+      <button id="filterBtn" class="filter-btn">🔍 Filtrele</button>
+      <button id="filterSifirlaBtn" class="filter-btn" style="background:var(--bg3);color:var(--text-muted);border:1px solid var(--border);">✕ Sıfırla</button>
     </div>
 
     <!-- Özet Kartları -->
-    <div class="stat-grid">
+    <div class="stat-grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));">
       <div class="stat-card">
-        <div class="stat-icon">🛒</div>
-        <div class="stat-label">Toplam Siparis</div>
-        <div class="stat-value" id="statSiparis">—</div>
+        <div class="stat-icon">📈</div>
+        <div class="stat-label">Net Kâr</div>
+        <div class="stat-value" id="statKar">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">%</div>
+        <div class="stat-label">Ort. Kâr Marjı</div>
+        <div class="stat-value" id="statMarj">—</div>
+      </div>
+      <div class="stat-card warn">
+        <div class="stat-icon">⚠</div>
+        <div class="stat-label">Zarar Eden</div>
+        <div class="stat-value" id="statZarar">—</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon">💰</div>
@@ -64,19 +83,19 @@
         <div class="stat-value" id="statCiro">—</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon">📈</div>
-        <div class="stat-label">Net Kar</div>
-        <div class="stat-value" id="statKar">—</div>
+        <div class="stat-icon">📦</div>
+        <div class="stat-label">Toplam Maliyet</div>
+        <div class="stat-value" id="statMaliyet">—</div>
+      </div>
+      <div class="stat-card" style="border-left:3px solid var(--yellow);">
+        <div class="stat-icon">🏷</div>
+        <div class="stat-label">Toplam Komisyon</div>
+        <div class="stat-value" id="statKomisyon" style="color:var(--yellow)">—</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon">%</div>
-        <div class="stat-label">Ort. Kar Marji</div>
-        <div class="stat-value" id="statMarj">—</div>
-      </div>
-      <div class="stat-card warn">
-        <div class="stat-icon">⚠</div>
-        <div class="stat-label">Zarar Eden</div>
-        <div class="stat-value" id="statZarar">—</div>
+        <div class="stat-icon">🚚</div>
+        <div class="stat-label">Toplam Kargo</div>
+        <div class="stat-value" id="statKargo">—</div>
       </div>
     </div>
 

@@ -39,11 +39,6 @@
         <div class="stat-label">Fark Var</div>
         <div class="stat-value" id="statFark">—</div>
       </div>
-      <div class="stat-card error">
-        <div class="stat-icon">🔴</div>
-        <div class="stat-label">Manuel İnceleme</div>
-        <div class="stat-value" id="statManuel">—</div>
-      </div>
       <div class="stat-card">
         <div class="stat-icon">⏳</div>
         <div class="stat-label">Beklemede</div>
@@ -72,7 +67,6 @@
           <option value="">Tümü</option>
           <option value="eslesdi">Eşleşti</option>
           <option value="fark_var">Fark Var</option>
-          <option value="manuel_inceleme">Manuel İnceleme</option>
           <option value="beklemede">Beklemede</option>
         </select>
       </div>
@@ -118,6 +112,147 @@
       </div>
       <div class="pagination" id="mutabakatPagination"></div>
     </div>
+
+    <!-- ── Kargo Desi Mutabakatı ── -->
+    <div class="card" id="desiCard" style="margin-top:8px;">
+      <div class="card-header" style="justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span style="font-size:20px;">📦</span>
+          <h2>Kargo Desi Mutabakatı</h2>
+        </div>
+        <div id="desiToggle" style="cursor:pointer;color:var(--text-muted);font-size:13px;user-select:none;">▼ Gizle</div>
+      </div>
+
+      <div id="desiIcerik">
+
+        <!-- Bilgi notu -->
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 16px;background:var(--accent-glow);border:1px solid rgba(9,105,218,0.2);border-radius:8px;margin-bottom:20px;">
+          <span style="font-size:16px;flex-shrink:0;">ℹ️</span>
+          <span style="font-size:12px;color:var(--text-muted);line-height:1.6;">
+            Kategoriye göre hesaplanan <strong style="color:var(--text)">tahmini desi</strong> ile pazaryerinin faturasındaki
+            <strong style="color:var(--text)">faturalanan desi</strong> karşılaştırılır.
+            <strong style="color:var(--red)">Aleyhimize</strong> = pazaryeri daha yüksek desi yazmış (fazla ücret).
+            <strong style="color:var(--green)">Lehimize</strong> = daha düşük desi (az ücret). Veriler "Mutabakat Yap"tan sonra güncellenir.
+          </span>
+        </div>
+
+        <!-- Özet Kartları -->
+        <div class="stat-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-bottom:20px;">
+          <div class="stat-card">
+            <div class="stat-icon">📦</div>
+            <div class="stat-label">Karşılaştırılan</div>
+            <div class="stat-value" id="desiStatToplam">—</div>
+          </div>
+          <div class="stat-card" style="border-left:3px solid var(--green);">
+            <div class="stat-icon">✅</div>
+            <div class="stat-label">Desi Eşleşti</div>
+            <div class="stat-value" id="desiStatEslesen" style="color:var(--green)">—</div>
+          </div>
+          <div class="stat-card error">
+            <div class="stat-icon">📈</div>
+            <div class="stat-label">Aleyhimize</div>
+            <div class="stat-value" id="desiStatAleyhimize">—</div>
+          </div>
+          <div class="stat-card" style="border-left:3px solid var(--accent);">
+            <div class="stat-icon">📉</div>
+            <div class="stat-label">Lehimize</div>
+            <div class="stat-value" id="desiStatLehimize" style="color:var(--accent)">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">⚖</div>
+            <div class="stat-label">Toplam Desi Farkı</div>
+            <div class="stat-value" id="desiStatToplamFark">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🎯</div>
+            <div class="stat-label">Ort. Faturalanan</div>
+            <div class="stat-value" id="desiStatOrtFat">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🧮</div>
+            <div class="stat-label">Ort. Tahmini</div>
+            <div class="stat-value" id="desiStatOrtTah">—</div>
+          </div>
+        </div>
+
+        <!-- Pazaryeri Bazlı Tablo -->
+        <div style="margin-bottom:20px;">
+          <h3 style="font-size:13px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;">Pazaryeri Bazlı Özet</h3>
+          <div class="table-wrap">
+            <table class="data-table" id="desiPazaryeriTable">
+              <thead>
+                <tr>
+                  <th>Pazaryeri</th>
+                  <th style="text-align:center">Toplam</th>
+                  <th style="text-align:center">Eşleşti</th>
+                  <th style="text-align:center">Farklı</th>
+                  <th style="text-align:center">Aleyhimize</th>
+                  <th style="text-align:center">Lehimize</th>
+                  <th style="text-align:right">Toplam Desi Farkı</th>
+                  <th style="text-align:right">Ort. Faturalanan</th>
+                  <th style="text-align:right">Ort. Tahmini</th>
+                </tr>
+              </thead>
+              <tbody id="desiPazaryeriBody">
+                <tr><td colspan="9" class="table-empty">Yükleniyor...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Filtre + Detay Tablosu -->
+        <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap;">
+          <div class="filter-group">
+            <label class="filter-label">Pazaryeri</label>
+            <select id="desiFiltPazaryeri" class="filter-select">
+              <option value="">Tümü</option>
+              <option>Trendyol</option><option>Hepsiburada</option><option>Amazon</option>
+              <option>N11</option><option>Pazarama</option><option>Flo</option><option>LCW</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Durum</label>
+            <select id="desiFiltDurum" class="filter-select">
+              <option value="">Tümü</option>
+              <option value="eslesen">Eşleşti</option>
+              <option value="farkli">Farklı</option>
+              <option value="aleyhimize">Aleyhimize (Fazla Desi)</option>
+              <option value="lehimize">Lehimize (Düşük Desi)</option>
+            </select>
+          </div>
+          <button id="desiFiltBtn" class="filter-btn">🔍 Filtrele</button>
+        </div>
+
+        <div class="table-wrap" style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);">
+            <span style="font-size:14px;font-weight:600;">Sipariş Bazlı Desi Detayı</span>
+            <span class="table-count" id="desiDetayCount">—</span>
+          </div>
+          <table class="data-table" id="desiDetayTable">
+            <thead>
+              <tr>
+                <th>Sipariş No</th>
+                <th>Pazar. Sipariş</th>
+                <th>Pazaryeri</th>
+                <th>Barkod</th>
+                <th>Ürün</th>
+                <th>Tarih</th>
+                <th style="text-align:center">Tahmini Desi</th>
+                <th style="text-align:center">Fat. Desi</th>
+                <th style="text-align:center">Fark</th>
+                <th style="text-align:right">Kargo ₺</th>
+                <th>Durum</th>
+              </tr>
+            </thead>
+            <tbody id="desiDetayBody">
+              <tr><td colspan="11" class="table-empty">Yükleniyor...</td></tr>
+            </tbody>
+          </table>
+          <div class="pagination" id="desiDetayPagination"></div>
+        </div>
+
+      </div><!-- /desiIcerik -->
+    </div><!-- /desiCard -->
 
   </main>
 

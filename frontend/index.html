@@ -28,7 +28,26 @@
     </div>
   </header>
 
-  <main class="main">
+  <!-- Pipeline Kartı -->
+  <div style="max-width:1400px;margin:110px auto 0;padding:0 28px;">
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:4px;">⚡ Karlılık Pipeline</div>
+        <div style="font-size:13px;color:var(--text-muted);">
+          Yüklenen Hammurlab verilerinden <strong>karlilik_ozeti</strong> tablosunu hesaplar ve günceller.
+          Dosya yükledikten sonra buradan çalıştırın.
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
+        <span id="pipelineDurum" style="font-size:13px;color:var(--text-muted);"></span>
+        <button id="pipelineBtn" class="filter-btn btn-primary" style="padding:10px 24px;font-size:14px;">
+          ▶ Pipeline Çalıştır
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <main class="main" style="margin-top:10px;">
 
     <!-- SOL SÜTUN: Pazaryeri -->
     <section class="upload-panel">
