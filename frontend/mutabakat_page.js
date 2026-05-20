@@ -134,8 +134,11 @@ document.getElementById("mutabakatYapBtn").addEventListener("click", async () =>
 
   try {
     const r    = await fetch(`${API_BASE}/mutabakat/hesapla`, { method: "POST" });
-    if (!r.ok) { throw new Error(`Sunucu hatası: ${r.status}`); }
     const data = await r.json();
+    if (!r.ok) {
+      console.error("[MUTABAKAT HATA DETAYI]", data.detay || data.hata);
+      throw new Error(data.hata || `Sunucu hatası: ${r.status}`);
+    }
 
     if (data.basarili) {
       const o = data.ozet;
