@@ -47,6 +47,6 @@ app.register_blueprint(ayarlar_bp,   url_prefix="/api")
 if __name__ == "__main__":
     print("==============================================")
     print("  E-Ticaret Mutabakat API Baslatiliyor...")
-    print("  http://localhost:5000")
+    print("  http://localhost:8080")
     print("==============================================")
     app.run(host='0.0.0.0', debug=False, port=8080)
