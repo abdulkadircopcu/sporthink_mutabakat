@@ -17,7 +17,9 @@ from routes.pipeline_routes import pipeline_bp
 from routes.auth_routes import auth_bp
 from routes.ayarlar_routes import ayarlar_bp
 
-FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR = os.path.join(BASE_DIR, "..", "frontend")
+FRONTEND_DIR = os.path.abspath(FRONTEND_DIR)
 
 app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path="")
 CORS(app)
