@@ -534,30 +534,12 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None) -> dict:
             """)
         conn.commit()
 
-        # kupon / kampanya_indirimi kolonlarının varlığını kontrol et (eski şemada olmayabilir)
-        cursor.execute("""
-            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_SCHEMA = DATABASE()
-              AND TABLE_NAME   = 'karlilik_ozeti'
-              AND COLUMN_NAME IN ('kupon', 'kampanya_indirimi')
-        """)
-        has_kupon_cols = cursor.fetchone()[0] == 2
-
-        if has_kupon_cols:
-            select_sql = f"""
-                SELECT id, siparis_no, barkod, pazaryeri,
-                       COALESCE(kategori, ''), COALESCE(satis_tutari, 0),
-                       COALESCE(kupon, 0), COALESCE(kampanya_indirimi, 0)
-                FROM karlilik_ozeti WHERE {where}
-            """
-        else:
-            select_sql = f"""
-                SELECT id, siparis_no, barkod, pazaryeri,
-                       COALESCE(kategori, ''), COALESCE(satis_tutari, 0),
-                       0, 0
-                FROM karlilik_ozeti WHERE {where}
-            """
-
+        select_sql = f"""
+            SELECT id, siparis_no, barkod, pazaryeri,
+                   COALESCE(kategori, ''), COALESCE(satis_tutari, 0),
+                   COALESCE(kupon, 0), COALESCE(kampanya_indirimi, 0)
+            FROM karlilik_ozeti WHERE {where}
+        """
         cursor.execute(select_sql, params)
         siparisler = cursor.fetchall()
 
