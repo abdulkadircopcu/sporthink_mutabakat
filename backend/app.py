@@ -49,4 +49,4 @@ if __name__ == "__main__":
     print("  E-Ticaret Mutabakat API Baslatiliyor...")
     print("  http://localhost:5000")
     print("==============================================")
-    app.run(debug=True, port=5000)
+    app.run(host='0.0.0.0', debug=False, port=8080)
