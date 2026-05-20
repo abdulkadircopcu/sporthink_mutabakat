@@ -443,21 +443,59 @@ def karlilik_ozeti_hesapla(pazaryeri: str = None) -> dict:
                 siparis_no = s["siparis_no"]
                 takip_no   = s["takip_no"] or siparis_no
 
-                # Hitit satışlardan ürün maliyeti (KDVsiz)
-                sub_cursor.execute("""
-                    SELECT COALESCE(SUM(CAST(urun_tutari_kdvsiz AS DECIMAL(15,4))), 0)
-                    FROM hitit_satislar
-                    WHERE takip_no = %s OR siparis_no = %s
-                """, (takip_no, siparis_no))
-                urun_maliyeti = _to_decimal(sub_cursor.fetchone()[0])
+                # Hitit satışlardan ürün maliyeti (KDVsiz) — önce barkod bazında eşleştir
+                barkod = s["barkod"]
+                if barkod:
+                    sub_cursor.execute("""
+                        SELECT COALESCE(SUM(CAST(urun_tutari_kdvsiz AS DECIMAL(15,4))), 0)
+                        FROM hitit_satislar
+                        WHERE (takip_no = %s OR siparis_no = %s) AND barkod = %s
+                    """, (takip_no, siparis_no, barkod))
+                    urun_maliyeti = _to_decimal(sub_cursor.fetchone()[0])
+                else:
+                    urun_maliyeti = Decimal("0")
 
-                # Hitit iadelerden geri dönen maliyet
-                sub_cursor.execute("""
-                    SELECT COALESCE(SUM(CAST(urun_tutari_kdvsiz AS DECIMAL(15,4))), 0)
-                    FROM hitit_iadeler
-                    WHERE takip_no = %s OR siparis_no = %s
-                """, (takip_no, siparis_no))
-                iade_maliyeti = _to_decimal(sub_cursor.fetchone()[0])
+                # Barkod eşleşmesi yoksa sipariş toplamını kalem sayısına böl
+                if urun_maliyeti == 0:
+                    sub_cursor.execute("""
+                        SELECT COALESCE(SUM(CAST(urun_tutari_kdvsiz AS DECIMAL(15,4))), 0)
+                        FROM hitit_satislar
+                        WHERE takip_no = %s OR siparis_no = %s
+                    """, (takip_no, siparis_no))
+                    toplam_maliyet = _to_decimal(sub_cursor.fetchone()[0])
+                    if toplam_maliyet > 0:
+                        sub_cursor.execute("""
+                            SELECT COUNT(*) FROM hamurlab_siparisler
+                            WHERE takip_no = %s OR siparis_no = %s
+                        """, (takip_no, siparis_no))
+                        kalem_sayisi = max(sub_cursor.fetchone()[0], 1)
+                        urun_maliyeti = toplam_maliyet / Decimal(str(kalem_sayisi))
+
+                # Hitit iadelerden geri dönen maliyet — aynı mantık
+                if barkod:
+                    sub_cursor.execute("""
+                        SELECT COALESCE(SUM(CAST(urun_tutari_kdvsiz AS DECIMAL(15,4))), 0)
+                        FROM hitit_iadeler
+                        WHERE (takip_no = %s OR siparis_no = %s) AND barkod = %s
+                    """, (takip_no, siparis_no, barkod))
+                    iade_maliyeti = _to_decimal(sub_cursor.fetchone()[0])
+                else:
+                    iade_maliyeti = Decimal("0")
+
+                if iade_maliyeti == 0:
+                    sub_cursor.execute("""
+                        SELECT COALESCE(SUM(CAST(urun_tutari_kdvsiz AS DECIMAL(15,4))), 0)
+                        FROM hitit_iadeler
+                        WHERE takip_no = %s OR siparis_no = %s
+                    """, (takip_no, siparis_no))
+                    toplam_iade = _to_decimal(sub_cursor.fetchone()[0])
+                    if toplam_iade > 0:
+                        sub_cursor.execute("""
+                            SELECT COUNT(*) FROM hamurlab_siparisler
+                            WHERE takip_no = %s OR siparis_no = %s
+                        """, (takip_no, siparis_no))
+                        kalem_sayisi = max(sub_cursor.fetchone()[0], 1)
+                        iade_maliyeti = toplam_iade / Decimal(str(kalem_sayisi))
 
                 satis_tutari = _to_decimal(s["satis_tutari"])
                 komisyon     = _to_decimal(s["komisyon"])
