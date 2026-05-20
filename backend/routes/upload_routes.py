@@ -266,14 +266,21 @@ def get_logs():
 # -------------------------------------------------------
 
 # DB bağlantısı (analiz_routes ile aynı config)
-_DB_CFG = {
-    "host": "localhost", "user": "root",
-    "password": "", "database": "sporthink_mutabakat", "charset": "utf8mb4"
-}
-
 def _get_db():
-    import mysql.connector
-    return mysql.connector.connect(**_DB_CFG)
+    import mysql.connector, os
+    cfg = {
+        "host":     os.environ.get("DB_HOST", "localhost"),
+        "port":     int(os.environ.get("DB_PORT", 3306)),
+        "user":     os.environ.get("DB_USER", "root"),
+        "password": os.environ.get("DB_PASSWORD", ""),
+        "database": os.environ.get("DB_NAME", "sporthink_mutabakat"),
+        "charset":  "utf8mb4",
+    }
+    if os.environ.get("DB_SSL_CA"):
+        cfg["ssl_ca"] = os.environ["DB_SSL_CA"]
+    else:
+        cfg["ssl_disabled"] = True
+    return mysql.connector.connect(**cfg)
 
 
 @upload_bp.route("/erp/barkod-uyari", methods=["GET"])

@@ -17,13 +17,20 @@ JWT_SECRET  = os.environ.get("JWT_SECRET", "sporthink_jwt_secret_2026")
 JWT_ALGO    = "HS256"
 JWT_EXPIRE  = 8  # saat
 
-DB_CONFIG = {
-    "host": "localhost", "user": "root",
-    "password": "", "database": "sporthink_mutabakat", "charset": "utf8mb4"
-}
-
 def get_conn():
-    return mysql.connector.connect(**DB_CONFIG)
+    cfg = {
+        "host":     os.environ.get("DB_HOST", "localhost"),
+        "port":     int(os.environ.get("DB_PORT", 3306)),
+        "user":     os.environ.get("DB_USER", "root"),
+        "password": os.environ.get("DB_PASSWORD", ""),
+        "database": os.environ.get("DB_NAME", "sporthink_mutabakat"),
+        "charset":  "utf8mb4",
+    }
+    if os.environ.get("DB_SSL_CA"):
+        cfg["ssl_ca"] = os.environ["DB_SSL_CA"]
+    else:
+        cfg["ssl_disabled"] = True
+    return mysql.connector.connect(**cfg)
 
 
 def token_olustur(kullanici_id, email, rol, ad, soyad):

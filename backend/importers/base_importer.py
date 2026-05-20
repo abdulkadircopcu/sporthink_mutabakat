@@ -25,14 +25,26 @@ def clean_column_name(col):
 
 
 class BaseImporter:
-    def __init__(self, db_name="sporthink_mutabakat", host="localhost", user="root", password=""):
-        self.db_name = db_name
-        self.host = host
-        self.user = user
-        self.password = password
-        
-        # SQLAlchemy engine oluştur
-        engine_str = f"mysql+mysqlconnector://{self.user}:{self.password}@{self.host}/{self.db_name}?charset=utf8mb4"
+    def __init__(self, db_name=None, host=None, user=None, password=None):
+        self.db_name  = db_name  or os.environ.get("DB_NAME",     "sporthink_mutabakat")
+        self.host     = host     or os.environ.get("DB_HOST",     "localhost")
+        self.port     = int(os.environ.get("DB_PORT", 3306))
+        self.user     = user     or os.environ.get("DB_USER",     "root")
+        self.password = password or os.environ.get("DB_PASSWORD", "")
+
+        ssl_ca = os.environ.get("DB_SSL_CA")
+        if ssl_ca:
+            engine_str = (
+                f"mysql+mysqlconnector://{self.user}:{self.password}"
+                f"@{self.host}:{self.port}/{self.db_name}"
+                f"?charset=utf8mb4&ssl_ca={ssl_ca}"
+            )
+        else:
+            engine_str = (
+                f"mysql+mysqlconnector://{self.user}:{self.password}"
+                f"@{self.host}:{self.port}/{self.db_name}"
+                f"?charset=utf8mb4&ssl_disabled=true"
+            )
         self.engine = create_engine(engine_str)
 
     def prepare_df(self, excel_path):

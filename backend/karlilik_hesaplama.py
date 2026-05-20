@@ -4,6 +4,7 @@
 # Sporthink E-Ticaret Departmanı
 # ============================================================
 
+import os
 import mysql.connector
 from decimal import Decimal
 from datetime import datetime
@@ -15,11 +16,14 @@ from datetime import datetime
 
 def get_db_connection():
     return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="sporthink_mutabakat",
-        charset="utf8mb4"
+        host=os.environ.get("DB_HOST", "localhost"),
+        port=int(os.environ.get("DB_PORT", 3306)),
+        user=os.environ.get("DB_USER", "root"),
+        password=os.environ.get("DB_PASSWORD", ""),
+        database=os.environ.get("DB_NAME", "sporthink_mutabakat"),
+        charset="utf8mb4",
+        ssl_ca=os.environ.get("DB_SSL_CA") or None,
+        ssl_disabled=not bool(os.environ.get("DB_SSL_CA"))
     )
 
 
