@@ -414,8 +414,14 @@ def karlilik_ozeti_hesapla(pazaryeri: str = None) -> dict:
                 COALESCE(hs.barkod,     '')          AS barkod,
                 COALESCE(hs.urun_adi,   '')          AS urun_adi,
                 COALESCE(hs.adet, 1)                 AS adet,
-                COALESCE(hs.toplam_fiyat, hs.fiyat, 0) AS satis_tutari,
+                GREATEST(
+                    COALESCE(hs.toplam_fiyat, hs.fiyat, 0)
+                    - COALESCE(hs.indirim_tutari, 0)
+                    - COALESCE(hs.magaza_indirim_tutari, 0),
+                    0
+                ) AS satis_tutari,
                 COALESCE(hs.komisyon, 0)             AS komisyon,
+                hs.olusma_zamani                     AS siparis_tarihi,
                 -- İptal/iade var mı?
                 CASE WHEN hi.id IS NOT NULL THEN 'iade'
                      ELSE COALESCE(hs.durum, 'teslim_edildi')
@@ -466,7 +472,7 @@ def karlilik_ozeti_hesapla(pazaryeri: str = None) -> dict:
                     INSERT INTO karlilik_ozeti (
                         siparis_id, siparis_no, pazaryeri_siparis_no,
                         pazaryeri, barkod, urun_adi,
-                        siparis_durumu,
+                        siparis_durumu, siparis_tarihi,
                         satis_adeti, siparis_toplam_tutari, pazaryeri_fiyati,
                         satis_tutari, urun_maliyeti,
                         faturalanan_komisyon_tutari,
@@ -478,7 +484,7 @@ def karlilik_ozeti_hesapla(pazaryeri: str = None) -> dict:
                     VALUES (
                         %(siparis_id)s, %(siparis_no)s, %(siparis_no)s,
                         %(pazaryeri)s, %(barkod)s, %(urun_adi)s,
-                        %(siparis_durumu)s,
+                        %(siparis_durumu)s, %(siparis_tarihi)s,
                         %(adet)s, %(satis_tutari)s, %(satis_tutari)s,
                         %(satis_tutari)s, %(urun_maliyeti)s,
                         %(komisyon)s,
@@ -488,6 +494,7 @@ def karlilik_ozeti_hesapla(pazaryeri: str = None) -> dict:
                     )
                     ON DUPLICATE KEY UPDATE
                         siparis_durumu              = VALUES(siparis_durumu),
+                        siparis_tarihi              = VALUES(siparis_tarihi),
                         satis_tutari                = VALUES(satis_tutari),
                         urun_maliyeti               = VALUES(urun_maliyeti),
                         faturalanan_komisyon_tutari = VALUES(faturalanan_komisyon_tutari),
@@ -497,20 +504,21 @@ def karlilik_ozeti_hesapla(pazaryeri: str = None) -> dict:
                         zarar_mi                    = VALUES(zarar_mi),
                         son_hesaplama_tarihi        = NOW()
                 """, {
-                    "siparis_id":    s["id"],
-                    "siparis_no":    siparis_no,
-                    "pazaryeri":     s["pazaryeri"],
-                    "barkod":        s["barkod"],
-                    "urun_adi":      s["urun_adi"],
+                    "siparis_id":     s["id"],
+                    "siparis_no":     siparis_no,
+                    "pazaryeri":      s["pazaryeri"],
+                    "barkod":         s["barkod"],
+                    "urun_adi":       s["urun_adi"],
                     "siparis_durumu": s["siparis_durumu"],
-                    "adet":          int(s["adet"] or 1),
-                    "satis_tutari":  float(satis_tutari),
-                    "urun_maliyeti": float(urun_maliyeti),
-                    "komisyon":      float(komisyon),
-                    "net_gelir":     float(net_gelir),
-                    "net_kar":       float(net_kar),
-                    "kar_marji":     kar_marji,
-                    "zarar_mi":      zarar_mi,
+                    "siparis_tarihi": s["siparis_tarihi"],
+                    "adet":           int(s["adet"] or 1),
+                    "satis_tutari":   float(satis_tutari),
+                    "urun_maliyeti":  float(urun_maliyeti),
+                    "komisyon":       float(komisyon),
+                    "net_gelir":      float(net_gelir),
+                    "net_kar":        float(net_kar),
+                    "kar_marji":      kar_marji,
+                    "zarar_mi":       zarar_mi,
                 })
                 ozet["islem"] += 1
 

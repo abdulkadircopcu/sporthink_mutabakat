@@ -1,5 +1,95 @@
 [
   {
+    "tarih": "14.05.2026 23:39:28",
+    "marketplace": "hitit",
+    "data_type": "satislar",
+    "dosya": "hitit_satis_ornek2k.xlsx",
+    "satir_sayisi": 65,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "14.05.2026 23:39:21",
+    "marketplace": "hammurlab",
+    "data_type": "siparisler",
+    "dosya": "hammurlab_siparis_ornek2.xlsx",
+    "satir_sayisi": 65,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "14.05.2026 23:24:24",
+    "marketplace": "hitit",
+    "data_type": "satislar",
+    "dosya": "hitit_satis_ornek2k.xlsx",
+    "satir_sayisi": 65,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "14.05.2026 23:24:12",
+    "marketplace": "hammurlab",
+    "data_type": "siparisler",
+    "dosya": "hammurlab_siparis_ornek2.xlsx",
+    "satir_sayisi": 65,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "14.05.2026 23:04:43",
+    "marketplace": "hitit",
+    "data_type": "satislar",
+    "dosya": "hitit_satis_ornek2k.xlsx",
+    "satir_sayisi": 65,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "14.05.2026 23:03:52",
+    "marketplace": "hammurlab",
+    "data_type": "siparisler",
+    "dosya": "hammurlab_siparis_ornek2.xlsx",
+    "satir_sayisi": 65,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "14.05.2026 22:58:01",
+    "marketplace": "hitit",
+    "data_type": "satislar",
+    "dosya": "hitit_satis_kargolu.xlsx",
+    "satir_sayisi": 64,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "14.05.2026 22:57:11",
+    "marketplace": "hammurlab",
+    "data_type": "siparisler",
+    "dosya": "hammurlab_siparis_kargolu.xlsx",
+    "satir_sayisi": 64,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "14.05.2026 22:52:42",
+    "marketplace": "hammurlab",
+    "data_type": "siparisler",
+    "dosya": "hammurlab_siparis_kargolu.xlsx",
+    "satir_sayisi": 0,
+    "durum": "hata",
+    "hata": "'takip_numarasi'"
+  },
+  {
+    "tarih": "14.05.2026 22:49:30",
+    "marketplace": "hammurlab",
+    "data_type": "siparisler",
+    "dosya": "hammurlab_siparis_kargolu.xlsx",
+    "satir_sayisi": 0,
+    "durum": "hata",
+    "hata": "Worksheet named 'selling_orders_details' not found"
+  },
+  {
     "tarih": "11.05.2026 22:30:14",
     "marketplace": "hitit",
     "data_type": "satislar",
