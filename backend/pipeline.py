@@ -400,7 +400,7 @@ def karlilik_ozeti_hesapla(pazaryeri: str = None) -> dict:
     """
     conn        = get_db_connection()
     dict_cursor = conn.cursor(dictionary=True)
-    sub_cursor  = conn.cursor()
+    sub_cursor  = conn.cursor(buffered=True)
     ozet        = {"islem": 0, "hata": 0}
 
     try:
