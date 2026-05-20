@@ -123,13 +123,14 @@ def gerceklesen_degerler_hesapla(
         row = cursor.fetchone()
         r["faturalanan_komisyon"] = Decimal(str(row[0]))
 
-        # Kargo + desi
+        # Kargo + desi (siparis_no hem direkt hem "takip_siparis" formatında gelebilir)
         cursor.execute("""
             SELECT gonderi_iade, COALESCE(SUM(gonderi_ucreti), 0), COALESCE(MAX(desi), 0)
             FROM trendyol_kargo_faturalari
             WHERE siparis_no = %s
+               OR siparis_no LIKE CONCAT('%%\\_', %s)
             GROUP BY gonderi_iade
-        """, (pazaryeri_siparis_no,))
+        """, (pazaryeri_siparis_no, pazaryeri_siparis_no))
         for gonderi_iade, tutar, desi in cursor.fetchall():
             if gonderi_iade and "iade" in str(gonderi_iade).lower():
                 r["faturalanan_iade_kargosu"] += Decimal(str(tutar))
@@ -148,12 +149,18 @@ def gerceklesen_degerler_hesapla(
         r["faturalanan_komisyon"] = Decimal(str(row[0]))
 
         # Kargo + desi
+        # Pazarama kargo dosyasindaki siparis_no, komisyon dosyasindan farklı olabilir.
+        # Ikisi de ayni takip_no (kargo takip) paylastiginda o alan üzerinden eslestirilir.
         cursor.execute("""
             SELECT siparis_durumu, COALESCE(SUM(satici_borcu), 0), COALESCE(MAX(desi), 0)
             FROM pazarama_kargo_detay
             WHERE siparis_no = %s
+               OR (takip_no IS NOT NULL AND takip_no IN (
+                   SELECT takip_no FROM pazarama_komisyon_detay
+                   WHERE siparis_no = %s AND takip_no IS NOT NULL
+               ))
             GROUP BY siparis_durumu
-        """, (pazaryeri_siparis_no,))
+        """, (pazaryeri_siparis_no, pazaryeri_siparis_no))
         for durum, tutar, desi in cursor.fetchall():
             if durum and "iade" in str(durum).lower():
                 r["faturalanan_iade_kargosu"] += Decimal(str(tutar))
@@ -200,6 +207,34 @@ def gerceklesen_degerler_hesapla(
         """, (pazaryeri_siparis_no,))
         row = cursor.fetchone()
         r["faturalanan_komisyon"] = Decimal(str(row[0]))
+
+        cursor.execute("""
+            SELECT kayit_tipi, COALESCE(SUM(tutar), 0)
+            FROM hepsiburada_hakedis
+            WHERE siparis_no = %s AND kayit_sinifi LIKE '%kargo%'
+            GROUP BY kayit_tipi
+        """, (pazaryeri_siparis_no,))
+        for kayit_tipi, tutar in cursor.fetchall():
+            if kayit_tipi and "iade" in str(kayit_tipi).lower():
+                r["faturalanan_iade_kargosu"] += Decimal(str(tutar))
+            else:
+                r["faturalanan_satis_kargosu"] += Decimal(str(tutar))
+
+    elif pz == "flo":
+        cursor.execute("""
+            SELECT islem_tipi, COALESCE(SUM(miktar), 0)
+            FROM flo_fatura_detay
+            WHERE siparis_no = %s
+            GROUP BY islem_tipi
+        """, (pazaryeri_siparis_no,))
+        for islem_tipi, tutar in cursor.fetchall():
+            it = str(islem_tipi).lower() if islem_tipi else ""
+            if "kargo" in it and "iade" in it:
+                r["faturalanan_iade_kargosu"] += Decimal(str(tutar))
+            elif "kargo" in it:
+                r["faturalanan_satis_kargosu"] += Decimal(str(tutar))
+            elif "komisyon" in it:
+                r["faturalanan_komisyon"] += Decimal(str(tutar))
 
     return r
 
@@ -392,9 +427,11 @@ _KARGO_CFG = {
 
 
 def _beklenen_komisyon_hesapla(
-    cursor, pazaryeri: str, kategori: str, satis_tutari: Decimal
+    cursor, pazaryeri: str, kategori: str, satis_tutari: Decimal,
+    kupon: Decimal = Decimal("0"), kampanya_indirimi: Decimal = Decimal("0")
 ) -> Decimal:
-    """komisyon_oranlari tablosundan oran çeker; bulunamazsa %10 varsayılan."""
+    """komisyon_oranlari tablosundan oran çeker; bulunamazsa %10 varsayılan.
+    Trendyol hariç indirim ve kupon düşüldükten sonraki tutar üzerinden hesaplanır."""
     cursor.execute("""
         SELECT komisyon_orani FROM komisyon_oranlari
         WHERE pazaryeri_kod = %s AND kategori = %s
@@ -402,7 +439,13 @@ def _beklenen_komisyon_hesapla(
     """, (pazaryeri, kategori or ""))
     row = cursor.fetchone()
     oran = Decimal(str(row[0])) if row else Decimal("10")
-    return satis_tutari * oran / Decimal("100")
+
+    if pazaryeri.lower() == "trendyol":
+        taban = satis_tutari
+    else:
+        taban = max(satis_tutari - kupon - kampanya_indirimi, Decimal("0"))
+
+    return taban * oran / Decimal("100")
 
 
 def _hamurlab_degerler_getir(
@@ -492,7 +535,8 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None) -> dict:
 
         cursor.execute(f"""
             SELECT id, siparis_no, barkod, pazaryeri,
-                   COALESCE(kategori, ''), COALESCE(satis_tutari, 0)
+                   COALESCE(kategori, ''), COALESCE(satis_tutari, 0),
+                   COALESCE(kupon, 0), COALESCE(kampanya_indirimi, 0)
             FROM karlilik_ozeti
             WHERE {where}
         """, params)
@@ -504,21 +548,27 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None) -> dict:
             "fark_var": 0,
         }
 
-        for siparis_id, siparis_no, barkod, pz, kategori, satis_tutari in siparisler:
-            satis_tutari = Decimal(str(satis_tutari))
+        for siparis_id, siparis_no, barkod, pz, kategori, satis_tutari, kupon, kampanya_indirimi in siparisler:
+            satis_tutari       = Decimal(str(satis_tutari))
+            kupon              = Decimal(str(kupon))
+            kampanya_indirimi  = Decimal(str(kampanya_indirimi))
 
-            beklenen_komisyon                 = _beklenen_komisyon_hesapla(cursor, pz, kategori, satis_tutari)
-            faturalanan_komisyon, gercek_desi = _hamurlab_degerler_getir(cursor, siparis_no, barkod)
-            hesaplanan_desi                   = _kategori_desi_getir(cursor, barkod, kategori)
-            beklenen_kargo                    = _kargo_fiyati_getir(cursor, pz, gercek_desi)
+            beklenen_komisyon    = _beklenen_komisyon_hesapla(cursor, pz, kategori, satis_tutari, kupon, kampanya_indirimi)
+            faturalanan_komisyon, _ = _hamurlab_degerler_getir(cursor, siparis_no, barkod)
 
-            # Negatif → fazla ödedik (kötü/kırmızı), Pozitif → az ödedik (sarı)
-            komisyon_farki  = beklenen_komisyon - faturalanan_komisyon
+            # Desi ve kargo: pazaryeri fatura tablolarından
+            gerceklesen              = gerceklesen_degerler_hesapla(cursor, siparis_no, pz)
+            faturalanan_desi         = Decimal(str(gerceklesen["faturalanan_desi"]))
+            faturalanan_satis_kargosu = gerceklesen["faturalanan_satis_kargosu"]
 
-            # Beklenen ödeme = beklenen komisyon + beklenen kargo toplamı
-            # Gerçekleşen    = faturalanan komisyon + faturalanan kargo toplamı
+            # Tahmini desi: kategori tablosundan; beklenen kargo bununla hesaplanır
+            hesaplanan_desi = _kategori_desi_getir(cursor, barkod, kategori)
+            beklenen_kargo  = _kargo_fiyati_getir(cursor, pz, hesaplanan_desi)
+            kargo_farki     = beklenen_kargo - faturalanan_satis_kargosu
+
+            komisyon_farki    = beklenen_komisyon - faturalanan_komisyon
             beklenen_odeme    = beklenen_komisyon + beklenen_kargo
-            gerceklesen_odeme = faturalanan_komisyon  # kargo faturası eklenince buraya eklenir
+            gerceklesen_odeme = faturalanan_komisyon + faturalanan_satis_kargosu
             odeme_farki       = beklenen_odeme - gerceklesen_odeme
 
             fark_var = abs(odeme_farki) >= ESLESME_ESIGI
@@ -534,7 +584,7 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None) -> dict:
                     mutabakat_durumu            = %s
                 WHERE id = %s
             """, (
-                float(gercek_desi), float(hesaplanan_desi),
+                float(faturalanan_desi), float(hesaplanan_desi),
                 float(beklenen_komisyon), float(faturalanan_komisyon),
                 durum.value, siparis_id,
             ))
@@ -545,25 +595,27 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None) -> dict:
                     siparis_id, pazaryeri,
                     beklenen_odeme, gerceklesen_odeme, odeme_farki,
                     beklenen_komisyon, faturalanan_komisyon, komisyon_farki,
-                    beklenen_kargo,
+                    beklenen_kargo, faturalanan_satis_kargosu, kargo_farki,
                     mutabakat_durumu, fark_var_mi, mutabakat_tarihi
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON DUPLICATE KEY UPDATE
-                    beklenen_odeme           = VALUES(beklenen_odeme),
-                    gerceklesen_odeme        = VALUES(gerceklesen_odeme),
-                    odeme_farki              = VALUES(odeme_farki),
-                    beklenen_komisyon        = VALUES(beklenen_komisyon),
-                    faturalanan_komisyon     = VALUES(faturalanan_komisyon),
-                    komisyon_farki           = VALUES(komisyon_farki),
-                    beklenen_kargo           = VALUES(beklenen_kargo),
-                    mutabakat_durumu         = VALUES(mutabakat_durumu),
-                    fark_var_mi              = VALUES(fark_var_mi),
-                    mutabakat_tarihi         = VALUES(mutabakat_tarihi)
+                    beklenen_odeme            = VALUES(beklenen_odeme),
+                    gerceklesen_odeme         = VALUES(gerceklesen_odeme),
+                    odeme_farki               = VALUES(odeme_farki),
+                    beklenen_komisyon         = VALUES(beklenen_komisyon),
+                    faturalanan_komisyon      = VALUES(faturalanan_komisyon),
+                    komisyon_farki            = VALUES(komisyon_farki),
+                    beklenen_kargo            = VALUES(beklenen_kargo),
+                    faturalanan_satis_kargosu = VALUES(faturalanan_satis_kargosu),
+                    kargo_farki               = VALUES(kargo_farki),
+                    mutabakat_durumu          = VALUES(mutabakat_durumu),
+                    fark_var_mi               = VALUES(fark_var_mi),
+                    mutabakat_tarihi          = VALUES(mutabakat_tarihi)
             """, (
                 siparis_id, pz,
                 float(beklenen_odeme), float(gerceklesen_odeme), float(odeme_farki),
                 float(beklenen_komisyon), float(faturalanan_komisyon), float(komisyon_farki),
-                float(beklenen_kargo),
+                float(beklenen_kargo), float(faturalanan_satis_kargosu), float(kargo_farki),
                 durum.value, 1 if fark_var else 0, datetime.now(),
             ))
 

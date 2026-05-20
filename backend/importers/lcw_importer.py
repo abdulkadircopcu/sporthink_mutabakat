@@ -8,9 +8,32 @@ class LcwImporter(BaseImporter):
 
     # Excel kolon adi → DB kolon adi (kargo faturasi)
     KARGO_FATURA_KOLON_MAP = {
-        "siparis_numarasi":           "siparis_no",
-        "islem_tarihi_teslim_tarihi": "teslim_tarihi",
-        "fatura_numarasi":            "fatura_no",
+        "islem_kayit_no":               "islem_kayit_no",
+        "satici":                       "satici",
+        "cari_kod":                     "cari_kod",
+        "siparis_numarasi":             "siparis_no",
+        "siparis_no":                   "siparis_no",
+        "paket_no":                     "paket_no",
+        "kargo_firmasi":                "kargo_firmasi",
+        "desi":                         "desi",
+        "islem_tipi":                   "islem_tipi",
+        "siparis_tarihi":               "siparis_tarihi",
+        "sevk_tarihi":                  "sevk_tarihi",
+        "islem_tarihi_teslim_tarihi":   "teslim_tarihi",
+        "teslim_tarihi":                "teslim_tarihi",
+        "vade_gunu":                    "vade_gunu",
+        "vade_tarihi":                  "vade_tarihi",
+        "lcw_kargo_hakedis":            "lcw_kargo_hakedis",
+        "fatura_numarasi":              "fatura_no",
+        "fatura_no":                    "fatura_no",
+        "fatura_tarihi":                "fatura_tarihi",
+    }
+
+    KARGO_FATURA_VALID_COLS = {
+        "islem_kayit_no", "satici", "cari_kod", "siparis_no", "paket_no",
+        "kargo_firmasi", "desi", "islem_tipi", "siparis_tarihi", "sevk_tarihi",
+        "teslim_tarihi", "vade_gunu", "vade_tarihi", "lcw_kargo_hakedis",
+        "fatura_no", "fatura_tarihi",
     }
 
     # Geçerli lcw_komisyon_faturalari DB kolon adları
@@ -92,6 +115,8 @@ class LcwImporter(BaseImporter):
         """Kargo faturasi → lcw_kargo_faturalari"""
         df = self.prepare_df(excel_path)
         df = df.rename(columns=self.KARGO_FATURA_KOLON_MAP)
+        valid_cols = [col for col in df.columns if col in self.KARGO_FATURA_VALID_COLS]
+        df = df[valid_cols]
         self.save_to_db(df, "lcw_kargo_faturalari")
 
     def import_komisyon_faturasi(self, excel_path):

@@ -98,8 +98,8 @@ MARKETPLACE_CONFIG = {
     "lcw": {
         "label": "LCW",
         "veri_tipleri": [
-            {"key": "kargo_faturasi",    "label": "Kargo Faturası"},
             {"key": "komisyon_faturasi", "label": "Komisyon Faturası"},
+            {"key": "kargo_faturasi",    "label": "Kargo Faturası"},
         ]
     },
 }
@@ -137,8 +137,8 @@ def get_importer_method(marketplace, data_type):
             "fatura_detay": FloImporter().import_fatura_detay,
         },
         "lcw": {
-            "kargo_faturasi":    LcwImporter().import_kargo_faturasi,
             "komisyon_faturasi": LcwImporter().import_komisyon_faturasi,
+            "kargo_faturasi":    LcwImporter().import_kargo_faturasi,
         },
     }
     mkt = metodlar.get(marketplace)
