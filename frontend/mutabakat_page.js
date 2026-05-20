@@ -138,12 +138,12 @@ document.getElementById("mutabakatYapBtn").addEventListener("click", async () =>
 
     if (data.basarili) {
       const o = data.ozet;
-      alert(
-        `Mutabakat tamamlandı!\n\n` +
-        `Toplam  : ${o.toplam}\n` +
-        `Eşleşti : ${o.eslesdi}\n` +
-        `Fark Var: ${o.fark_var}`
-      );
+      let mesaj = `Mutabakat tamamlandı!\n\nToplam  : ${o.toplam}\nEşleşti : ${o.eslesdi}\nFark Var: ${o.fark_var}`;
+      if (o.hata_sayisi > 0) {
+        mesaj += `\n\nHatalı  : ${o.hata_sayisi}`;
+        if (o.hatalar && o.hatalar.length) mesaj += `\n${o.hatalar.join("\n")}`;
+      }
+      alert(mesaj);
       loadMutabakatOzet();
       loadMutabakatListe(1);
       loadDesiOzet();

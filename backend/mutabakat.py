@@ -532,99 +532,128 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None) -> dict:
                 LEFT JOIN mutabakat m ON m.siparis_id = k.id
                 WHERE m.id IS NULL
             """)
+        conn.commit()
 
-        cursor.execute(f"""
-            SELECT id, siparis_no, barkod, pazaryeri,
-                   COALESCE(kategori, ''), COALESCE(satis_tutari, 0),
-                   COALESCE(kupon, 0), COALESCE(kampanya_indirimi, 0)
-            FROM karlilik_ozeti
-            WHERE {where}
-        """, params)
+        # kupon / kampanya_indirimi kolonlarının varlığını kontrol et (eski şemada olmayabilir)
+        cursor.execute("""
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME   = 'karlilik_ozeti'
+              AND COLUMN_NAME IN ('kupon', 'kampanya_indirimi')
+        """)
+        has_kupon_cols = cursor.fetchone()[0] == 2
+
+        if has_kupon_cols:
+            select_sql = f"""
+                SELECT id, siparis_no, barkod, pazaryeri,
+                       COALESCE(kategori, ''), COALESCE(satis_tutari, 0),
+                       COALESCE(kupon, 0), COALESCE(kampanya_indirimi, 0)
+                FROM karlilik_ozeti WHERE {where}
+            """
+        else:
+            select_sql = f"""
+                SELECT id, siparis_no, barkod, pazaryeri,
+                       COALESCE(kategori, ''), COALESCE(satis_tutari, 0),
+                       0, 0
+                FROM karlilik_ozeti WHERE {where}
+            """
+
+        cursor.execute(select_sql, params)
         siparisler = cursor.fetchall()
 
         ozet = {
             "toplam":   len(siparisler),
             "eslesdi":  0,
             "fark_var": 0,
+            "hata_sayisi": 0,
+            "hatalar":  [],
         }
 
         for siparis_id, siparis_no, barkod, pz, kategori, satis_tutari, kupon, kampanya_indirimi in siparisler:
-            satis_tutari       = Decimal(str(satis_tutari))
-            kupon              = Decimal(str(kupon))
-            kampanya_indirimi  = Decimal(str(kampanya_indirimi))
+            try:
+                satis_tutari       = Decimal(str(satis_tutari))
+                kupon              = Decimal(str(kupon))
+                kampanya_indirimi  = Decimal(str(kampanya_indirimi))
 
-            beklenen_komisyon    = _beklenen_komisyon_hesapla(cursor, pz, kategori, satis_tutari, kupon, kampanya_indirimi)
-            faturalanan_komisyon, _ = _hamurlab_degerler_getir(cursor, siparis_no, barkod)
+                beklenen_komisyon    = _beklenen_komisyon_hesapla(cursor, pz, kategori, satis_tutari, kupon, kampanya_indirimi)
+                faturalanan_komisyon, _ = _hamurlab_degerler_getir(cursor, siparis_no, barkod)
 
-            # Desi ve kargo: pazaryeri fatura tablolarından
-            gerceklesen              = gerceklesen_degerler_hesapla(cursor, siparis_no, pz)
-            faturalanan_desi         = Decimal(str(gerceklesen["faturalanan_desi"]))
-            faturalanan_satis_kargosu = gerceklesen["faturalanan_satis_kargosu"]
+                # Desi ve kargo: pazaryeri fatura tablolarından
+                gerceklesen              = gerceklesen_degerler_hesapla(cursor, siparis_no, pz)
+                faturalanan_desi         = Decimal(str(gerceklesen["faturalanan_desi"]))
+                faturalanan_satis_kargosu = gerceklesen["faturalanan_satis_kargosu"]
 
-            # Tahmini desi: kategori tablosundan; beklenen kargo bununla hesaplanır
-            hesaplanan_desi = _kategori_desi_getir(cursor, barkod, kategori)
-            beklenen_kargo  = _kargo_fiyati_getir(cursor, pz, hesaplanan_desi)
-            kargo_farki     = beklenen_kargo - faturalanan_satis_kargosu
+                # Tahmini desi: kategori tablosundan; beklenen kargo bununla hesaplanır
+                hesaplanan_desi = _kategori_desi_getir(cursor, barkod, kategori)
+                beklenen_kargo  = _kargo_fiyati_getir(cursor, pz, hesaplanan_desi)
+                kargo_farki     = beklenen_kargo - faturalanan_satis_kargosu
 
-            komisyon_farki    = beklenen_komisyon - faturalanan_komisyon
-            beklenen_odeme    = beklenen_komisyon + beklenen_kargo
-            gerceklesen_odeme = faturalanan_komisyon + faturalanan_satis_kargosu
-            odeme_farki       = beklenen_odeme - gerceklesen_odeme
+                komisyon_farki    = beklenen_komisyon - faturalanan_komisyon
+                beklenen_odeme    = beklenen_komisyon + beklenen_kargo
+                gerceklesen_odeme = faturalanan_komisyon + faturalanan_satis_kargosu
+                odeme_farki       = beklenen_odeme - gerceklesen_odeme
 
-            fark_var = abs(odeme_farki) >= ESLESME_ESIGI
-            durum    = ReconciliationStatus.ESLESDI if not fark_var else ReconciliationStatus.FARK_VAR
+                fark_var = abs(odeme_farki) >= ESLESME_ESIGI
+                durum    = ReconciliationStatus.ESLESDI if not fark_var else ReconciliationStatus.FARK_VAR
 
-            # karlilik_ozeti: desi ve komisyon alanlarını güncelle
-            cursor.execute("""
-                UPDATE karlilik_ozeti SET
-                    faturalanan_desi            = %s,
-                    tahmini_desi                = %s,
-                    hesaplanan_komisyon_tutari  = %s,
-                    faturalanan_komisyon_tutari = %s,
-                    mutabakat_durumu            = %s
-                WHERE id = %s
-            """, (
-                float(faturalanan_desi), float(hesaplanan_desi),
-                float(beklenen_komisyon), float(faturalanan_komisyon),
-                durum.value, siparis_id,
-            ))
+                # karlilik_ozeti: desi ve komisyon alanlarını güncelle
+                cursor.execute("""
+                    UPDATE karlilik_ozeti SET
+                        faturalanan_desi            = %s,
+                        tahmini_desi                = %s,
+                        hesaplanan_komisyon_tutari  = %s,
+                        faturalanan_komisyon_tutari = %s,
+                        mutabakat_durumu            = %s
+                    WHERE id = %s
+                """, (
+                    float(faturalanan_desi), float(hesaplanan_desi),
+                    float(beklenen_komisyon), float(faturalanan_komisyon),
+                    durum.value, siparis_id,
+                ))
 
-            # mutabakat tablosuna upsert
-            cursor.execute("""
-                INSERT INTO mutabakat (
-                    siparis_id, pazaryeri,
-                    beklenen_odeme, gerceklesen_odeme, odeme_farki,
-                    beklenen_komisyon, faturalanan_komisyon, komisyon_farki,
-                    beklenen_kargo, faturalanan_satis_kargosu, kargo_farki,
-                    mutabakat_durumu, fark_var_mi, mutabakat_tarihi
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON DUPLICATE KEY UPDATE
-                    beklenen_odeme            = VALUES(beklenen_odeme),
-                    gerceklesen_odeme         = VALUES(gerceklesen_odeme),
-                    odeme_farki               = VALUES(odeme_farki),
-                    beklenen_komisyon         = VALUES(beklenen_komisyon),
-                    faturalanan_komisyon      = VALUES(faturalanan_komisyon),
-                    komisyon_farki            = VALUES(komisyon_farki),
-                    beklenen_kargo            = VALUES(beklenen_kargo),
-                    faturalanan_satis_kargosu = VALUES(faturalanan_satis_kargosu),
-                    kargo_farki               = VALUES(kargo_farki),
-                    mutabakat_durumu          = VALUES(mutabakat_durumu),
-                    fark_var_mi               = VALUES(fark_var_mi),
-                    mutabakat_tarihi          = VALUES(mutabakat_tarihi)
-            """, (
-                siparis_id, pz,
-                float(beklenen_odeme), float(gerceklesen_odeme), float(odeme_farki),
-                float(beklenen_komisyon), float(faturalanan_komisyon), float(komisyon_farki),
-                float(beklenen_kargo), float(faturalanan_satis_kargosu), float(kargo_farki),
-                durum.value, 1 if fark_var else 0, datetime.now(),
-            ))
+                # mutabakat tablosuna upsert
+                cursor.execute("""
+                    INSERT INTO mutabakat (
+                        siparis_id, pazaryeri,
+                        beklenen_odeme, gerceklesen_odeme, odeme_farki,
+                        beklenen_komisyon, faturalanan_komisyon, komisyon_farki,
+                        beklenen_kargo, faturalanan_satis_kargosu, kargo_farki,
+                        mutabakat_durumu, fark_var_mi, mutabakat_tarihi
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        beklenen_odeme            = VALUES(beklenen_odeme),
+                        gerceklesen_odeme         = VALUES(gerceklesen_odeme),
+                        odeme_farki               = VALUES(odeme_farki),
+                        beklenen_komisyon         = VALUES(beklenen_komisyon),
+                        faturalanan_komisyon      = VALUES(faturalanan_komisyon),
+                        komisyon_farki            = VALUES(komisyon_farki),
+                        beklenen_kargo            = VALUES(beklenen_kargo),
+                        faturalanan_satis_kargosu = VALUES(faturalanan_satis_kargosu),
+                        kargo_farki               = VALUES(kargo_farki),
+                        mutabakat_durumu          = VALUES(mutabakat_durumu),
+                        fark_var_mi               = VALUES(fark_var_mi),
+                        mutabakat_tarihi          = VALUES(mutabakat_tarihi)
+                """, (
+                    siparis_id, pz,
+                    float(beklenen_odeme), float(gerceklesen_odeme), float(odeme_farki),
+                    float(beklenen_komisyon), float(faturalanan_komisyon), float(komisyon_farki),
+                    float(beklenen_kargo), float(faturalanan_satis_kargosu), float(kargo_farki),
+                    durum.value, 1 if fark_var else 0, datetime.now(),
+                ))
 
-            if durum == ReconciliationStatus.ESLESDI:
-                ozet["eslesdi"] += 1
-            else:
-                ozet["fark_var"] += 1
+                conn.commit()
 
-        conn.commit()
+                if durum == ReconciliationStatus.ESLESDI:
+                    ozet["eslesdi"] += 1
+                else:
+                    ozet["fark_var"] += 1
+
+            except Exception as e:
+                conn.rollback()
+                ozet["hata_sayisi"] += 1
+                if len(ozet["hatalar"]) < 5:
+                    ozet["hatalar"].append(f"{siparis_no}: {e}")
+
         return ozet
 
     except Exception as e:
