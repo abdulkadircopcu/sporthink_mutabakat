@@ -1,5 +1,203 @@
 [
   {
+    "tarih": "20.05.2026 21:58:33",
+    "marketplace": "hitit",
+    "data_type": "satislar",
+    "dosya": "hitit_satis_ornek.xlsx",
+    "satir_sayisi": 72,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "20.05.2026 21:58:19",
+    "marketplace": "hitit",
+    "data_type": "satislar",
+    "dosya": "hamurlab_siparis_ornek.xlsx",
+    "satir_sayisi": 0,
+    "durum": "hata",
+    "hata": "Worksheet named 'Grid' not found"
+  },
+  {
+    "tarih": "20.05.2026 21:58:07",
+    "marketplace": "hammurlab",
+    "data_type": "siparisler",
+    "dosya": "hamurlab_siparis_ornek.xlsx",
+    "satir_sayisi": 72,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "20.05.2026 21:57:56",
+    "marketplace": "trendyol",
+    "data_type": "komisyon_faturasi",
+    "dosya": "trendyol_komisyon_ornek.xlsx",
+    "satir_sayisi": 7,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "20.05.2026 21:57:49",
+    "marketplace": "trendyol",
+    "data_type": "kargo_faturasi",
+    "dosya": "trendyol_kargo_ornek.xlsx",
+    "satir_sayisi": 5,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "20.05.2026 21:57:40",
+    "marketplace": "pazarama",
+    "data_type": "komisyon_kargo",
+    "dosya": "pazarama_ornek.xlsx",
+    "satir_sayisi": 24,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "20.05.2026 21:57:34",
+    "marketplace": "n11",
+    "data_type": "komisyon_faturasi",
+    "dosya": "n11_komisyon_ornek.xlsx",
+    "satir_sayisi": 5,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "20.05.2026 21:57:28",
+    "marketplace": "n11",
+    "data_type": "kargo",
+    "dosya": "n11_kargo_ornek.xlsx",
+    "satir_sayisi": 5,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "20.05.2026 21:57:19",
+    "marketplace": "lcw",
+    "data_type": "kargo_faturasi",
+    "dosya": "lcw_kargo_ornek.xlsx",
+    "satir_sayisi": 6,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "20.05.2026 21:57:13",
+    "marketplace": "lcw",
+    "data_type": "komisyon_faturasi",
+    "dosya": "lcw_komisyon_ornek.xlsx",
+    "satir_sayisi": 8,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "20.05.2026 21:57:04",
+    "marketplace": "hepsiburada",
+    "data_type": "hakedis",
+    "dosya": "hepsiburada_hakedis_ornek.xlsx",
+    "satir_sayisi": 10,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "20.05.2026 21:56:55",
+    "marketplace": "flo",
+    "data_type": "fatura_detay",
+    "dosya": "flo_fatura_ornek.xlsx",
+    "satir_sayisi": 12,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "20.05.2026 21:56:46",
+    "marketplace": "amazon",
+    "data_type": "islemler",
+    "dosya": "amazon_islemler_ornek.xlsx",
+    "satir_sayisi": 14,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "20.05.2026 21:51:10",
+    "marketplace": "lcw",
+    "data_type": "kargo_faturasi",
+    "dosya": "lcw_kargo_ornek.xlsx",
+    "satir_sayisi": 9,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "20.05.2026 21:51:05",
+    "marketplace": "lcw",
+    "data_type": "komisyon_faturasi",
+    "dosya": "lcw_komisyon_ornek.xlsx",
+    "satir_sayisi": 9,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "20.05.2026 21:27:07",
+    "marketplace": "n11",
+    "data_type": "komisyon_faturasi",
+    "dosya": "n11_komisyon_ornek.xlsx",
+    "satir_sayisi": 11,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "20.05.2026 21:27:03",
+    "marketplace": "n11",
+    "data_type": "kargo",
+    "dosya": "n11_kargo_ornek.xlsx",
+    "satir_sayisi": 11,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "20.05.2026 21:26:56",
+    "marketplace": "lcw",
+    "data_type": "komisyon_faturasi",
+    "dosya": "lcw_kargo_ornek.xlsx",
+    "satir_sayisi": 9,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "20.05.2026 21:26:50",
+    "marketplace": "lcw",
+    "data_type": "komisyon_faturasi",
+    "dosya": "lcw_komisyon_ornek.xlsx",
+    "satir_sayisi": 9,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "20.05.2026 21:26:42",
+    "marketplace": "hepsiburada",
+    "data_type": "hakedis",
+    "dosya": "hepsiburada_hakedis_ornek.xlsx",
+    "satir_sayisi": 7,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "20.05.2026 21:26:35",
+    "marketplace": "flo",
+    "data_type": "fatura_detay",
+    "dosya": "flo_fatura_ornek.xlsx",
+    "satir_sayisi": 12,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
+    "tarih": "20.05.2026 21:26:27",
+    "marketplace": "amazon",
+    "data_type": "islemler",
+    "dosya": "amazon_islemler_ornek.xlsx",
+    "satir_sayisi": 20,
+    "durum": "basarili",
+    "hata": null
+  },
+  {
     "tarih": "14.05.2026 23:39:28",
     "marketplace": "hitit",
     "data_type": "satislar",
