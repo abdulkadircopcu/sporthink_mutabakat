@@ -4,7 +4,7 @@
  * Nav'a kullanıcı adı ve çıkış butonu ekler.
  */
 
-const AUTH_API = "http://localhost:5000/api";
+const AUTH_API = "/api";
 
 function authGetToken() {
   return localStorage.getItem("auth_token");

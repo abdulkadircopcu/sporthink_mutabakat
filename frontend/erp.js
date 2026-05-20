@@ -1,4 +1,4 @@
-const ERP_API = "http://localhost:5000/api";
+const ERP_API = "/api";
 
 let erpSelectedKaynak   = null;
 let erpSelectedDataType = null;

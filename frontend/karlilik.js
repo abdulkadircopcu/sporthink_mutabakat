@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "/api";
 const MP_EMOJIS = { Trendyol:"🛍️", Hepsiburada:"🔶", Amazon:"📦", N11:"🟠", Pazarama:"🟣", Flo:"👟", LCW:"👕" };
 
 let currentPage = 1;
