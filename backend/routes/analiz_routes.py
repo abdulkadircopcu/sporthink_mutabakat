@@ -21,21 +21,32 @@ def get_conn():
 # ── Karlılık Özeti Kartları ──
 @analiz_bp.route("/karlilik/ozet", methods=["GET"])
 def karlilik_ozet():
-    pazaryeri = request.args.get("pazaryeri")
+    pazaryeri  = request.args.get("pazaryeri")
+    bas_tarih  = request.args.get("bas_tarih")
+    bit_tarih  = request.args.get("bit_tarih")
 
     where  = ["1=1"]
     params = []
     if pazaryeri:
         where.append("pazaryeri = %s"); params.append(pazaryeri)
+    if bas_tarih:
+        where.append("DATE(siparis_tarihi) >= %s"); params.append(bas_tarih)
+    if bit_tarih:
+        where.append("DATE(siparis_tarihi) <= %s"); params.append(bit_tarih)
 
     sql = f"""
         SELECT
-            COUNT(*)                              AS toplam_siparis,
-            COALESCE(SUM(satis_tutari), 0)        AS toplam_ciro,
-            COALESCE(SUM(net_kar), 0)             AS toplam_kar,
-            COALESCE(AVG(kar_marji), 0)           AS ort_kar_marji,
-            SUM(CASE WHEN zarar_mi=1 THEN 1 ELSE 0 END) AS zarar_siparis,
-            SUM(CASE WHEN net_kar>0  THEN 1 ELSE 0 END) AS karli_siparis
+            COUNT(*)                                                        AS toplam_siparis,
+            COALESCE(SUM(satis_tutari), 0)                                  AS toplam_ciro,
+            COALESCE(SUM(urun_maliyeti), 0)                                 AS toplam_maliyet,
+            COALESCE(SUM(net_kar), 0)                                       AS toplam_kar,
+            COALESCE(AVG(kar_marji), 0)                                     AS ort_kar_marji,
+            COALESCE(SUM(faturalanan_komisyon_tutari), 0)                   AS toplam_komisyon,
+            COALESCE(SUM(satis_kargosu), 0)                                 AS toplam_kargo,
+            COALESCE(AVG(satis_tutari), 0)                                  AS ort_siparis_tutari,
+            SUM(CASE WHEN zarar_mi=1 THEN 1 ELSE 0 END)                    AS zarar_siparis,
+            SUM(CASE WHEN net_kar>0 AND urun_maliyeti IS NOT NULL
+                          AND urun_maliyeti!=0 THEN 1 ELSE 0 END)           AS karli_siparis
         FROM karlilik_ozeti
         WHERE {" AND ".join(where)}
     """
@@ -45,7 +56,6 @@ def karlilik_ozet():
     row = cur.fetchone()
     cur.close(); conn.close()
 
-    # Decimal → float çevir
     for k, v in row.items():
         if v is not None:
             try: row[k] = float(v)
@@ -57,7 +67,9 @@ def karlilik_ozet():
 @analiz_bp.route("/karlilik/liste", methods=["GET"])
 def karlilik_liste():
     pazaryeri = request.args.get("pazaryeri")
-    durum     = request.args.get("durum")       # zarar / karli / hepsi
+    durum     = request.args.get("durum")
+    bas_tarih = request.args.get("bas_tarih")
+    bit_tarih = request.args.get("bit_tarih")
     sayfa     = int(request.args.get("sayfa", 1))
     limit     = int(request.args.get("limit", 20))
     offset    = (sayfa - 1) * limit
@@ -70,6 +82,10 @@ def karlilik_liste():
         where.append("zarar_mi = 1")
     elif durum == "karli":
         where.append("zarar_mi = 0 AND net_kar > 0")
+    if bas_tarih:
+        where.append("DATE(siparis_tarihi) >= %s"); params.append(bas_tarih)
+    if bit_tarih:
+        where.append("DATE(siparis_tarihi) <= %s"); params.append(bit_tarih)
 
     w = " AND ".join(where)
 
@@ -77,6 +93,7 @@ def karlilik_liste():
     data_sql  = f"""
         SELECT
             siparis_no, pazaryeri_siparis_no, pazaryeri, siparis_durumu,
+            DATE_FORMAT(siparis_tarihi, '%d.%m.%Y') AS siparis_tarihi,
             barkod, urun_adi, satis_adeti,
             COALESCE(satis_tutari,0)                AS satis_tutari,
             COALESCE(urun_maliyeti,0)               AS urun_maliyeti,
@@ -235,7 +252,8 @@ def mutabakat_liste():
             k.pazaryeri_siparis_no,
             k.barkod,
             k.urun_adi,
-            k.siparis_durumu
+            k.siparis_durumu,
+            DATE_FORMAT(k.siparis_tarihi, '%d.%m.%Y') AS siparis_tarihi
         FROM mutabakat m
         LEFT JOIN karlilik_ozeti k ON k.id = m.siparis_id
         WHERE {w}
@@ -265,3 +283,159 @@ def mutabakat_liste():
         "limit":  limit,
         "veriler": rows
     })
+
+
+# ── Kargo Desi Mutabakatı — Özet (sipariş bazlı) ──
+@analiz_bp.route("/kargo-desi/ozet", methods=["GET"])
+def kargo_desi_ozet():
+    pazaryeri = request.args.get("pazaryeri")
+
+    inner_where  = ["faturalanan_desi IS NOT NULL", "tahmini_desi IS NOT NULL"]
+    params = []
+    if pazaryeri:
+        inner_where.append("pazaryeri = %s"); params.append(pazaryeri)
+
+    iw = " AND ".join(inner_where)
+    # Önce sipariş bazlı toplam desi hesapla, sonra aggregate et
+    sql = f"""
+        SELECT
+            COUNT(*)                                              AS toplam,
+            SUM(CASE WHEN desi_farki = 0  THEN 1 ELSE 0 END)    AS eslesen,
+            SUM(CASE WHEN desi_farki > 0  THEN 1 ELSE 0 END)    AS aleyhimize,
+            SUM(CASE WHEN desi_farki < 0  THEN 1 ELSE 0 END)    AS lehimize,
+            COALESCE(SUM(desi_farki), 0)                         AS toplam_desi_farki,
+            COALESCE(AVG(faturalanan_desi), 0)                   AS ort_faturalanan_desi,
+            COALESCE(AVG(toplam_tahmini), 0)                     AS ort_tahmini_desi
+        FROM (
+            SELECT
+                siparis_no,
+                pazaryeri,
+                MAX(faturalanan_desi)          AS faturalanan_desi,
+                SUM(tahmini_desi)              AS toplam_tahmini,
+                MAX(faturalanan_desi) - SUM(tahmini_desi) AS desi_farki
+            FROM karlilik_ozeti
+            WHERE {iw}
+            GROUP BY siparis_no, pazaryeri
+        ) siparis_ozet
+    """
+    conn = get_conn()
+    cur  = conn.cursor(dictionary=True)
+    cur.execute(sql, params)
+    row = cur.fetchone()
+    cur.close(); conn.close()
+
+    for k, v in row.items():
+        if v is not None:
+            try: row[k] = float(v)
+            except: pass
+    return jsonify(row)
+
+
+# ── Kargo Desi Mutabakatı — Liste (sipariş bazlı) ──
+@analiz_bp.route("/kargo-desi/liste", methods=["GET"])
+def kargo_desi_liste():
+    pazaryeri = request.args.get("pazaryeri")
+    durum     = request.args.get("durum")
+    sayfa     = int(request.args.get("sayfa", 1))
+    limit     = int(request.args.get("limit", 10))
+    offset    = (sayfa - 1) * limit
+
+    inner_where = ["faturalanan_desi IS NOT NULL", "tahmini_desi IS NOT NULL"]
+    params = []
+    if pazaryeri:
+        inner_where.append("pazaryeri = %s"); params.append(pazaryeri)
+
+    iw = " AND ".join(inner_where)
+
+    # Durum filtresi dışarıdaki subquery sonucuna uygulanır
+    outer_where = "1=1"
+    if durum == "eslesen":
+        outer_where = "desi_farki = 0"
+    elif durum == "farkli":
+        outer_where = "desi_farki != 0"
+    elif durum == "aleyhimize":
+        outer_where = "desi_farki > 0"
+    elif durum == "lehimize":
+        outer_where = "desi_farki < 0"
+
+    subquery = f"""
+        SELECT
+            siparis_no,
+            MAX(pazaryeri_siparis_no)                       AS pazaryeri_siparis_no,
+            pazaryeri,
+            MAX(urun_adi)                                   AS urun_adi,
+            SUM(tahmini_desi)                               AS tahmini_desi,
+            MAX(faturalanan_desi)                           AS faturalanan_desi,
+            MAX(faturalanan_desi) - SUM(tahmini_desi)       AS desi_farki,
+            MAX(satis_kargosu)                              AS satis_kargosu,
+            DATE_FORMAT(MAX(siparis_tarihi), '%d.%m.%Y')    AS siparis_tarihi
+        FROM karlilik_ozeti
+        WHERE {iw}
+        GROUP BY siparis_no, pazaryeri
+    """
+
+    count_sql = f"SELECT COUNT(*) FROM ({subquery}) t WHERE {outer_where}"
+    data_sql  = f"""
+        SELECT * FROM ({subquery}) t
+        WHERE {outer_where}
+        ORDER BY ABS(desi_farki) DESC
+        LIMIT %s OFFSET %s
+    """
+
+    conn = get_conn()
+    cur  = conn.cursor(dictionary=True)
+    cur.execute(count_sql, params)
+    toplam = cur.fetchone()["COUNT(*)"]
+    cur.execute(data_sql, params + [limit, offset])
+    rows = cur.fetchall()
+    cur.close(); conn.close()
+
+    for row in rows:
+        for k, v in row.items():
+            if v is not None:
+                try: row[k] = float(v)
+                except: pass
+
+    return jsonify({"toplam": toplam, "sayfa": sayfa, "limit": limit, "veriler": rows})
+
+
+# ── Kargo Desi — Pazaryeri Bazlı Özet (sipariş bazlı) ──
+@analiz_bp.route("/kargo-desi/pazaryeri", methods=["GET"])
+def kargo_desi_pazaryeri():
+    conn = get_conn()
+    cur  = conn.cursor(dictionary=True)
+    # İç sorgu: sipariş başına toplam tahmini vs faturalanan
+    # Dış sorgu: pazaryeri bazında aggregate
+    cur.execute("""
+        SELECT
+            pazaryeri,
+            COUNT(*)                                              AS toplam,
+            SUM(CASE WHEN desi_farki = 0 THEN 1 ELSE 0 END)     AS eslesen,
+            SUM(CASE WHEN desi_farki != 0 THEN 1 ELSE 0 END)    AS farkli,
+            SUM(CASE WHEN desi_farki > 0 THEN 1 ELSE 0 END)     AS aleyhimize,
+            SUM(CASE WHEN desi_farki < 0 THEN 1 ELSE 0 END)     AS lehimize,
+            COALESCE(SUM(desi_farki), 0)                         AS toplam_desi_farki,
+            COALESCE(AVG(faturalanan_desi), 0)                   AS ort_faturalanan_desi,
+            COALESCE(AVG(toplam_tahmini), 0)                     AS ort_tahmini_desi
+        FROM (
+            SELECT
+                siparis_no,
+                pazaryeri,
+                MAX(faturalanan_desi)                    AS faturalanan_desi,
+                SUM(tahmini_desi)                        AS toplam_tahmini,
+                MAX(faturalanan_desi) - SUM(tahmini_desi) AS desi_farki
+            FROM karlilik_ozeti
+            WHERE faturalanan_desi IS NOT NULL AND tahmini_desi IS NOT NULL
+            GROUP BY siparis_no, pazaryeri
+        ) siparis_ozet
+        GROUP BY pazaryeri
+        ORDER BY ABS(COALESCE(SUM(desi_farki), 0)) DESC
+    """)
+    rows = cur.fetchall()
+    cur.close(); conn.close()
+    for row in rows:
+        for k, v in row.items():
+            if v is not None:
+                try: row[k] = float(v)
+                except: pass
+    return jsonify(rows)
