@@ -506,7 +506,7 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None) -> dict:
     - hesaplanan_desi    : kategori_desi_listesi.tahmini_desi
     """
     conn   = get_db_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(buffered=True)
 
     try:
         where  = "1=1"
