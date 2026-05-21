@@ -41,21 +41,34 @@ def karlilik_ozet():
     if bit_tarih:
         where.append("DATE(siparis_tarihi) <= %s"); params.append(bit_tarih)
 
+    # Siparış başına tek kargo/komisyon almak için GROUP BY siparis_no ile önce
+    # sipariş bazlı toplamı hesapla, sonra bunları üst topla.
     sql = f"""
         SELECT
-            COUNT(*)                                                        AS toplam_siparis,
-            COALESCE(SUM(satis_tutari), 0)                                  AS toplam_ciro,
-            COALESCE(SUM(urun_maliyeti), 0)                                 AS toplam_maliyet,
-            COALESCE(SUM(net_kar), 0)                                       AS toplam_kar,
-            COALESCE(AVG(kar_marji), 0)                                     AS ort_kar_marji,
-            COALESCE(SUM(faturalanan_komisyon_tutari), 0)                   AS toplam_komisyon,
-            COALESCE(SUM(satis_kargosu), 0)                                 AS toplam_kargo,
-            COALESCE(AVG(satis_tutari), 0)                                  AS ort_siparis_tutari,
-            SUM(CASE WHEN zarar_mi=1 THEN 1 ELSE 0 END)                    AS zarar_siparis,
-            SUM(CASE WHEN net_kar>0 AND urun_maliyeti IS NOT NULL
-                          AND urun_maliyeti!=0 THEN 1 ELSE 0 END)           AS karli_siparis
-        FROM karlilik_ozeti
-        WHERE {" AND ".join(where)}
+            COUNT(*)                                AS toplam_siparis,
+            COALESCE(SUM(t.toplam_ciro),      0)   AS toplam_ciro,
+            COALESCE(SUM(t.toplam_maliyet),   0)   AS toplam_maliyet,
+            COALESCE(SUM(t.toplam_kar),       0)   AS toplam_kar,
+            COALESCE(AVG(t.ort_kar_marji),    0)   AS ort_kar_marji,
+            COALESCE(SUM(t.toplam_komisyon),  0)   AS toplam_komisyon,
+            COALESCE(SUM(t.toplam_kargo),     0)   AS toplam_kargo,
+            COALESCE(AVG(t.toplam_ciro),      0)   AS ort_siparis_tutari,
+            SUM(CASE WHEN t.zarar_mi=1 THEN 1 ELSE 0 END)                         AS zarar_siparis,
+            SUM(CASE WHEN t.toplam_kar>0 AND t.toplam_maliyet>0 THEN 1 ELSE 0 END) AS karli_siparis
+        FROM (
+            SELECT
+                siparis_no,
+                MIN(zarar_mi)                           AS zarar_mi,
+                SUM(satis_tutari)                       AS toplam_ciro,
+                SUM(COALESCE(urun_maliyeti, 0))         AS toplam_maliyet,
+                SUM(net_kar)                            AS toplam_kar,
+                AVG(kar_marji)                          AS ort_kar_marji,
+                MAX(COALESCE(faturalanan_komisyon_tutari, 0)) AS toplam_komisyon,
+                MAX(COALESCE(satis_kargosu, 0))         AS toplam_kargo
+            FROM karlilik_ozeti
+            WHERE {" AND ".join(where)}
+            GROUP BY siparis_no
+        ) t
     """
     conn = get_conn()
     cur  = conn.cursor(dictionary=True)
@@ -85,50 +98,68 @@ def karlilik_liste():
     params = []
     if pazaryeri:
         where.append("pazaryeri = %s"); params.append(pazaryeri)
-    if durum == "zarar":
-        where.append("zarar_mi = 1")
-    elif durum == "karli":
-        where.append("zarar_mi = 0 AND net_kar > 0")
-    elif durum == "iade_iptal":
-        where.append("(LOWER(siparis_durumu) LIKE '%iade%' OR LOWER(siparis_durumu) LIKE '%iptal%')")
     if bas_tarih:
         where.append("DATE(siparis_tarihi) >= %s"); params.append(bas_tarih)
     if bit_tarih:
         where.append("DATE(siparis_tarihi) <= %s"); params.append(bit_tarih)
 
-    w = " AND ".join(where)
+    # Durum filtresi sipariş düzeyinde uygulanacak (aşağıdaki subquery içinde)
+    having = []
+    if durum == "zarar":
+        having.append("toplam_zarar_mi = 1")
+    elif durum == "karli":
+        having.append("toplam_zarar_mi = 0 AND toplam_kar > 0")
 
-    count_sql = f"SELECT COUNT(*) FROM karlilik_ozeti WHERE {w}"
-    data_sql  = f"""
+    w = " AND ".join(where)
+    h = ("HAVING " + " AND ".join(having)) if having else ""
+
+    # Sipariş başına gruplama: kargo/komisyon MAX (tüm kalemlerde aynı), tutar/maliyet/kar SUM
+    inner_sql = f"""
         SELECT
-            siparis_no, pazaryeri_siparis_no, pazaryeri, siparis_durumu,
-            DATE_FORMAT(siparis_tarihi, '%d.%m.%Y') AS siparis_tarihi,
-            barkod, urun_adi, satis_adeti,
-            COALESCE(satis_tutari,0)                AS satis_tutari,
-            COALESCE(urun_maliyeti,0)               AS urun_maliyeti,
-            COALESCE(faturalanan_komisyon_tutari,0) AS komisyon,
-            COALESCE(satis_kargosu,0)               AS kargo,
-            COALESCE(net_gelir,0)                   AS net_gelir,
-            COALESCE(net_kar,0)                     AS net_kar,
-            COALESCE(kar_marji,0)                   AS kar_marji,
-            zarar_mi, mutabakat_durumu
+            MIN(id)                                              AS id,
+            siparis_no,
+            MAX(pazaryeri_siparis_no)                            AS pazaryeri_siparis_no,
+            MAX(pazaryeri)                                       AS pazaryeri,
+            MAX(siparis_durumu)                                  AS siparis_durumu,
+            DATE_FORMAT(MAX(siparis_tarihi), '%d.%m.%Y')         AS siparis_tarihi,
+            GROUP_CONCAT(DISTINCT barkod ORDER BY barkod SEPARATOR ', ') AS barkod,
+            GROUP_CONCAT(DISTINCT urun_adi ORDER BY urun_adi SEPARATOR ' / ') AS urun_adi,
+            SUM(COALESCE(satis_adeti, 1))                        AS satis_adeti,
+            SUM(COALESCE(satis_tutari, 0))                       AS satis_tutari,
+            SUM(COALESCE(urun_maliyeti, 0))                      AS urun_maliyeti,
+            MAX(COALESCE(faturalanan_komisyon_tutari, 0))         AS komisyon,
+            MAX(COALESCE(satis_kargosu, 0))                      AS kargo,
+            SUM(COALESCE(net_gelir, 0))                          AS net_gelir,
+            SUM(COALESCE(net_kar, 0))                            AS net_kar,
+            AVG(COALESCE(kar_marji, 0))                          AS kar_marji,
+            MAX(zarar_mi)                                        AS toplam_zarar_mi,
+            MAX(mutabakat_durumu)                                AS mutabakat_durumu
         FROM karlilik_ozeti
         WHERE {w}
+        GROUP BY siparis_no
+        {h}
+    """
+
+    count_sql = f"SELECT COUNT(*) FROM ({inner_sql}) sub"
+    data_sql  = f"""
+        SELECT * FROM ({inner_sql}) sub
         ORDER BY id DESC
         LIMIT %s OFFSET %s
     """
+
     conn = get_conn()
     cur  = conn.cursor(dictionary=True)
 
-    cur.execute(count_sql, params)
+    cur.execute(count_sql, params + params)  # params iki kez: inner + count wrapper
     toplam = cur.fetchone()["COUNT(*)"]
 
-    cur.execute(data_sql, params + [limit, offset])
+    cur.execute(data_sql, params + params + [limit, offset])
     rows = cur.fetchall()
     cur.close(); conn.close()
 
-    # Decimal → float
+    # zarar_mi alanını normalize et
     for row in rows:
+        row["zarar_mi"] = row.pop("toplam_zarar_mi", 0)
         for k, v in row.items():
             if v is not None:
                 try: row[k] = float(v)
@@ -147,21 +178,35 @@ def karlilik_liste():
 def pazaryeri_karsilastirma():
     conn = get_conn()
     cur  = conn.cursor(dictionary=True)
+    # Önce sipariş bazında tek kargo/komisyon al, sonra pazaryeri bazında topla
     cur.execute("""
         SELECT
             pazaryeri,
-            COUNT(*)                                          AS siparis_sayisi,
-            COALESCE(SUM(satis_tutari), 0)                   AS toplam_ciro,
-            COALESCE(SUM(net_kar), 0)                        AS toplam_kar,
-            COALESCE(AVG(kar_marji), 0)                      AS ort_kar_marji,
-            SUM(CASE WHEN zarar_mi = 1 THEN 1 ELSE 0 END)   AS zarar_sayisi,
-            SUM(CASE WHEN net_kar >= 0 AND urun_maliyeti IS NOT NULL
-                          AND urun_maliyeti != 0 THEN 1 ELSE 0 END) AS karli_sayisi,
-            COALESCE(SUM(faturalanan_komisyon_tutari), 0)    AS toplam_komisyon,
-            COALESCE(SUM(satis_kargosu), 0)                  AS toplam_kargo,
-            COALESCE(SUM(urun_maliyeti), 0)                  AS toplam_maliyet,
-            COALESCE(AVG(satis_tutari), 0)                   AS ort_siparis_tutari
-        FROM karlilik_ozeti
+            COUNT(*)                                               AS siparis_sayisi,
+            COALESCE(SUM(toplam_ciro), 0)                         AS toplam_ciro,
+            COALESCE(SUM(toplam_kar), 0)                          AS toplam_kar,
+            COALESCE(AVG(ort_kar_marji), 0)                       AS ort_kar_marji,
+            SUM(CASE WHEN zarar_mi = 1 THEN 1 ELSE 0 END)        AS zarar_sayisi,
+            SUM(CASE WHEN toplam_kar >= 0 AND toplam_maliyet > 0
+                     THEN 1 ELSE 0 END)                           AS karli_sayisi,
+            COALESCE(SUM(toplam_komisyon), 0)                     AS toplam_komisyon,
+            COALESCE(SUM(toplam_kargo), 0)                        AS toplam_kargo,
+            COALESCE(SUM(toplam_maliyet), 0)                      AS toplam_maliyet,
+            COALESCE(AVG(toplam_ciro), 0)                         AS ort_siparis_tutari
+        FROM (
+            SELECT
+                MAX(pazaryeri)                                     AS pazaryeri,
+                siparis_no,
+                MAX(zarar_mi)                                      AS zarar_mi,
+                SUM(satis_tutari)                                  AS toplam_ciro,
+                SUM(net_kar)                                       AS toplam_kar,
+                AVG(kar_marji)                                     AS ort_kar_marji,
+                MAX(COALESCE(faturalanan_komisyon_tutari, 0))      AS toplam_komisyon,
+                MAX(COALESCE(satis_kargosu, 0))                    AS toplam_kargo,
+                SUM(COALESCE(urun_maliyeti, 0))                    AS toplam_maliyet
+            FROM karlilik_ozeti
+            GROUP BY siparis_no
+        ) siparis_ozet
         GROUP BY pazaryeri
         ORDER BY toplam_ciro DESC
     """)
