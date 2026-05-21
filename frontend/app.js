@@ -12,6 +12,7 @@ let selectedFile        = null;
 // ── API Sağlık Kontrolü ──
 async function checkHealth() {
   const el = document.getElementById("apiStatus");
+  if (!el) return;
   try {
     const r = await fetch(`${API_BASE}/health`);
     if (r.ok) {
