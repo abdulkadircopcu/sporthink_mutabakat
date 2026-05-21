@@ -36,8 +36,6 @@ def karlilik_ozet():
     params = []
     if pazaryeri:
         where.append("pazaryeri = %s"); params.append(pazaryeri)
-    if durum == "iade_iptal":
-        where.append("(LOWER(siparis_durumu) LIKE '%iade%' OR LOWER(siparis_durumu) LIKE '%iptal%')")
     if bas_tarih:
         where.append("DATE(siparis_tarihi) >= %s"); params.append(bas_tarih)
     if bit_tarih:
