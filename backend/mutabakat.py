@@ -614,47 +614,123 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None, after_id: int = 0) -> dict:
 
         if "pazarama" in by_pz:
             nos = [r[8] for r in by_pz["pazarama"]]
-            cursor.execute(f"SELECT siparis_no, COALESCE(SUM(satici_komisyon_tutari),0) FROM pazarama_komisyon_detay WHERE siparis_no IN ({_ph(nos)}) GROUP BY siparis_no", nos)
+            # Komisyon: pazarama_komisyon_detay.takip_no = karlilik_ozeti.pazaryeri_siparis_no
+            cursor.execute(f"SELECT takip_no, COALESCE(SUM(satici_komisyon_tutari),0) FROM pazarama_komisyon_detay WHERE takip_no IN ({_ph(nos)}) GROUP BY takip_no", nos)
             for sno, v in cursor.fetchall(): pz_komisyon[("pazarama", sno)] = Decimal(str(v))
-            cursor.execute(f"SELECT siparis_no, takip_no FROM pazarama_komisyon_detay WHERE siparis_no IN ({_ph(nos)}) AND takip_no IS NOT NULL", nos)
-            takip_map = defaultdict(list); all_takip = []
-            for sno, tn in cursor.fetchall(): takip_map[sno].append(tn); all_takip.append(tn)
-            kargo_cond = [f"siparis_no IN ({_ph(nos)})"]; kargo_p = list(nos)
-            if all_takip:
-                kargo_cond.append(f"(takip_no IS NOT NULL AND takip_no IN ({_ph(all_takip)}))"); kargo_p += all_takip
-            cursor.execute(f"SELECT siparis_no, takip_no, siparis_durumu, COALESCE(SUM(satici_borcu),0), COALESCE(MAX(desi),0) FROM pazarama_kargo_detay WHERE {' OR '.join(kargo_cond)} GROUP BY siparis_no, takip_no, siparis_durumu", kargo_p)
-            nos_set = set(nos)
-            for rsno, rtn, durum, t, d in cursor.fetchall():
-                targets = set()
-                if rsno in nos_set: targets.add(rsno)
-                if rtn:
-                    for sno, tns in takip_map.items():
-                        if rtn in tns: targets.add(sno)
-                for sno in targets: pz_kargo[("pazarama", sno)].append((durum, t, d))
+            # Kargo: pazarama_kargo_detay.takip_no = karlilik_ozeti.pazaryeri_siparis_no
+            cursor.execute(f"""
+                SELECT takip_no, siparis_durumu, COALESCE(SUM(satici_borcu),0), COALESCE(MAX(desi),0)
+                FROM pazarama_kargo_detay
+                WHERE takip_no IN ({_ph(nos)})
+                GROUP BY takip_no, siparis_durumu
+            """, nos)
+            for rtn, durum, t, d in cursor.fetchall():
+                pz_kargo[("pazarama", rtn)].append((durum, t, d))
 
         if "n11" in by_pz:
             nos = [r[8] for r in by_pz["n11"]]
+            # Komisyon: n11_komisyon_faturalari.siparis_no = karlilik_ozeti.pazaryeri_siparis_no
             cursor.execute(f"SELECT siparis_no, COALESCE(SUM(komisyon_bedeli),0) FROM n11_komisyon_faturalari WHERE siparis_no IN ({_ph(nos)}) GROUP BY siparis_no", nos)
             for sno, v in cursor.fetchall(): pz_komisyon[("n11", sno)] = Decimal(str(v))
+            # Kargo: n11_kargo.siparis_kodu = 'takip_no-siparis_no' → LIKE '%-{siparis_no}'
+            # tl_desi_kg formatı: '27.38 TL / 4 Desi veya kg' → tutar ve desi parse edilir
+            for sno in nos:
+                cursor.execute("""
+                    SELECT tl_desi_kg FROM n11_kargo
+                    WHERE siparis_kodu LIKE CONCAT('%%-', %s)
+                      AND islem_turu = 'Kargo'
+                    LIMIT 1
+                """, (sno,))
+                row = cursor.fetchone()
+                if row and row[0]:
+                    # Parse: '27.38 TL / 4 Desi veya kg'
+                    try:
+                        parts = str(row[0]).split()   # ['27.38', 'TL', '/', '4', 'Desi', ...]
+                        tutar = Decimal(parts[0].replace(',', '.'))
+                        desi  = int(parts[3]) if len(parts) > 3 else 0
+                        pz_kargo[("n11", sno)].append(("Kargo", tutar, desi))
+                    except Exception:
+                        pass
 
         if "lcw" in by_pz:
             nos = [r[8] for r in by_pz["lcw"]]
             cursor.execute(f"SELECT siparis_no, COALESCE(SUM(lcw_komisyon_hakedis),0) FROM lcw_komisyon_faturalari WHERE siparis_no IN ({_ph(nos)}) GROUP BY siparis_no", nos)
             for sno, v in cursor.fetchall(): pz_komisyon[("lcw", sno)] = Decimal(str(v))
-            cursor.execute(f"SELECT siparis_no, islem_tipi, COALESCE(SUM(lcw_kargo_hakedis),0), COALESCE(MAX(desi),0) FROM lcw_kargo_faturalari WHERE siparis_no IN ({_ph(nos)}) GROUP BY siparis_no, islem_tipi", nos)
-            for sno, tip, t, d in cursor.fetchall(): pz_kargo[("lcw", sno)].append((tip, t, d))
+            # lcw_kargo_hakedis NULL → desi bilgisiyle lcw_kargo_desi_fiyatlari'ndan hesapla
+            # LCW kargo fiyat tablosunda aras_kargo kullanılır
+            cursor.execute(f"""
+                SELECT siparis_no, islem_tipi, COALESCE(MAX(desi),0)
+                FROM lcw_kargo_faturalari
+                WHERE siparis_no IN ({_ph(nos)})
+                GROUP BY siparis_no, islem_tipi
+            """, nos)
+            for sno, tip, desi_val in cursor.fetchall():
+                # Gerçek kargo tutarını desi fiyat tablosundan çek
+                cursor.execute("""
+                    SELECT COALESCE(aras_kargo, 0) FROM lcw_kargo_desi_fiyatlari
+                    WHERE desi >= %s ORDER BY desi ASC LIMIT 1
+                """, (float(desi_val),))
+                fiyat_row = cursor.fetchone()
+                kargo_tutari = Decimal(str(fiyat_row[0])) if fiyat_row else Decimal("0")
+                tip_str = str(tip).lower() if tip else ""
+                if "iade" in tip_str:
+                    pz_kargo[("lcw", sno)].append(("iade", kargo_tutari, int(desi_val)))
+                else:
+                    pz_kargo[("lcw", sno)].append(("Kargo Maliyeti", kargo_tutari, int(desi_val)))
 
         if "hepsiburada" in by_pz:
             nos = [r[8] for r in by_pz["hepsiburada"]]
-            cursor.execute(f"SELECT siparis_no, COALESCE(SUM(CASE WHEN kayit_turu='Gider' THEN tutar ELSE 0 END),0) FROM hepsiburada_hakedis WHERE siparis_no IN ({_ph(nos)}) AND kayit_sinifi LIKE '%komisyon%' GROUP BY siparis_no", nos)
-            for sno, v in cursor.fetchall(): pz_komisyon[("hepsiburada", sno)] = Decimal(str(v))
-            cursor.execute(f"SELECT siparis_no, kayit_tipi, COALESCE(SUM(tutar),0) FROM hepsiburada_hakedis WHERE siparis_no IN ({_ph(nos)}) AND kayit_sinifi LIKE '%kargo%' GROUP BY siparis_no, kayit_tipi", nos)
-            for sno, tip, t in cursor.fetchall(): pz_kargo[("hepsiburada", sno)].append((tip, t, 0))
+            # Hepsiburada hakedis tablosunda kargo satırı yok (sadece 'Sipariş bazlı' var)
+            # Komisyon: amazon_ucretleri benzeri → hakedis tablosundan SUM tutar
+            # 'Sipariş tutarı' kayıt tipi: ödenen tutar (komisyon dahil net)
+            # Beklenen komisyon desi tablosundan hesaplanacak (zaten var), kargo = 0
+            cursor.execute(f"""
+                SELECT siparis_no, COALESCE(SUM(CASE WHEN kayit_turu='Gelir' THEN tutar ELSE -tutar END), 0)
+                FROM hepsiburada_hakedis
+                WHERE siparis_no IN ({_ph(nos)})
+                GROUP BY siparis_no
+            """, nos)
+            # Bu değer gerçekleşen ödeme toplamı — şimdilik komisyon kaynağı olarak saklıyoruz
+            for sno, v in cursor.fetchall():
+                # Hepsiburada'da komisyon ayrı faturalanmadığından 0 bırak,
+                # beklenen_komisyon hesabı desi tablosundan yapılıyor
+                pass
+            # Kargo: Hepsiburada kargo faturası ayrı gelmiyor → pz_kargo boş kalır,
+            # beklenen_kargo desi tablosundan zaten hesaplanıyor
 
         if "flo" in by_pz:
             nos = [r[8] for r in by_pz["flo"]]
+            # Flo: flo_fatura_detay'da sadece 'Komisyon' var, kargo satırı yok
             cursor.execute(f"SELECT siparis_no, islem_tipi, COALESCE(SUM(miktar),0) FROM flo_fatura_detay WHERE siparis_no IN ({_ph(nos)}) GROUP BY siparis_no, islem_tipi", nos)
-            for sno, tip, t in cursor.fetchall(): pz_kargo[("flo", sno)].append((tip, t, 0))
+            for sno, tip, t in cursor.fetchall():
+                it = str(tip).lower() if tip else ""
+                if "komisyon" in it:
+                    # Komisyon tutarını pz_komisyon'a ekle
+                    pz_komisyon[("flo", sno)] = pz_komisyon.get(("flo", sno), Decimal("0")) + Decimal(str(t))
+                elif "kargo" in it:
+                    pz_kargo[("flo", sno)].append((tip, t, 0))
+            # Kargo: Flo kargo faturası bu tabloda yok → pz_kargo boş kalır
+
+        if "amazon" in by_pz:
+            nos = [r[8] for r in by_pz["amazon"]]
+            # Amazon: amazon_islemler.siparis_no = 'prefix-{pazaryeri_siparis_no}' formatında
+            # karlilik_ozeti.pazaryeri_siparis_no sadece son kısım → LIKE '%-{sno}' ile eşleştir
+            for sno in nos:
+                cursor.execute("""
+                    SELECT islem_tipi, COALESCE(SUM(ABS(amazon_ucretleri)), 0) AS tutar
+                    FROM amazon_islemler
+                    WHERE siparis_no LIKE CONCAT('%%-', %s)
+                      AND amazon_ucretleri != 0
+                    GROUP BY islem_tipi
+                """, (sno,))
+                for tip, t in cursor.fetchall():
+                    tip_bytes = tip.encode('utf-8', errors='replace').lower() if tip else b''
+                    # 'Amazon Kolay Gönder Ücretleri' → kargo
+                    # 'Sipariş Ödemesi' → komisyon (referral fee)
+                    if b'g' in tip_bytes and (b'nder' in tip_bytes or b'nderi' in tip_bytes):
+                        pz_kargo[("amazon", sno)].append(("Kargo", t, 0))
+                    elif b'sipari' in tip_bytes or b'deme' in tip_bytes:
+                        pz_komisyon[("amazon", sno)] = pz_komisyon.get(("amazon", sno), Decimal("0")) + Decimal(str(t))
 
         # ── 7. Hesaplama döngüsü — DB sorgusu YOK ──
         karlilik_rows  = []
