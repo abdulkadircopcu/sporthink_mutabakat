@@ -533,7 +533,8 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None, after_id: int = 0) -> dict:
         cursor.execute(f"""
             SELECT id, siparis_no, barkod, pazaryeri,
                    COALESCE(kategori, ''), COALESCE(satis_tutari, 0),
-                   COALESCE(kupon, 0), COALESCE(kampanya_indirimi, 0)
+                   COALESCE(kupon, 0), COALESCE(kampanya_indirimi, 0),
+                   COALESCE(pazaryeri_siparis_no, '')
             FROM karlilik_ozeti WHERE {where} ORDER BY id ASC LIMIT {BATCH_LIMIT}
         """, params)
         siparisler = cursor.fetchall()
@@ -592,14 +593,27 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None, after_id: int = 0) -> dict:
         def _ph(lst): return ",".join(["%s"] * len(lst))
 
         if "trendyol" in by_pz:
-            nos = [r[1] for r in by_pz["trendyol"]]
+            nos = [r[8] for r in by_pz["trendyol"]]
             cursor.execute(f"SELECT siparis_no, COALESCE(SUM(trendyol_hakedis),0) FROM trendyol_komisyon_faturalari WHERE siparis_no IN ({_ph(nos)}) GROUP BY siparis_no", nos)
             for sno, v in cursor.fetchall(): pz_komisyon[("trendyol", sno)] = Decimal(str(v))
             cursor.execute(f"SELECT siparis_no, gonderi_iade, COALESCE(SUM(gonderi_ucreti),0), COALESCE(MAX(desi),0) FROM trendyol_kargo_faturalari WHERE siparis_no IN ({_ph(nos)}) GROUP BY siparis_no, gonderi_iade", nos)
-            for sno, gi, t, d in cursor.fetchall(): pz_kargo[("trendyol", sno)].append((gi, t, d))
+            found_kargo: set = set()
+            for sno, gi, t, d in cursor.fetchall():
+                pz_kargo[("trendyol", sno)].append((gi, t, d))
+                found_kargo.add(sno)
+            # LIKE fallback: çoklu koli formatı (ör. "9876_12345678")
+            for sno in [n for n in nos if n not in found_kargo]:
+                cursor.execute("""
+                    SELECT gonderi_iade, COALESCE(SUM(gonderi_ucreti),0), COALESCE(MAX(desi),0)
+                    FROM trendyol_kargo_faturalari
+                    WHERE siparis_no LIKE CONCAT('%%\\_', %s)
+                    GROUP BY gonderi_iade
+                """, (sno,))
+                for gi, t, d in cursor.fetchall():
+                    pz_kargo[("trendyol", sno)].append((gi, t, d))
 
         if "pazarama" in by_pz:
-            nos = [r[1] for r in by_pz["pazarama"]]
+            nos = [r[8] for r in by_pz["pazarama"]]
             cursor.execute(f"SELECT siparis_no, COALESCE(SUM(satici_komisyon_tutari),0) FROM pazarama_komisyon_detay WHERE siparis_no IN ({_ph(nos)}) GROUP BY siparis_no", nos)
             for sno, v in cursor.fetchall(): pz_komisyon[("pazarama", sno)] = Decimal(str(v))
             cursor.execute(f"SELECT siparis_no, takip_no FROM pazarama_komisyon_detay WHERE siparis_no IN ({_ph(nos)}) AND takip_no IS NOT NULL", nos)
@@ -619,26 +633,26 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None, after_id: int = 0) -> dict:
                 for sno in targets: pz_kargo[("pazarama", sno)].append((durum, t, d))
 
         if "n11" in by_pz:
-            nos = [r[1] for r in by_pz["n11"]]
+            nos = [r[8] for r in by_pz["n11"]]
             cursor.execute(f"SELECT siparis_no, COALESCE(SUM(komisyon_bedeli),0) FROM n11_komisyon_faturalari WHERE siparis_no IN ({_ph(nos)}) GROUP BY siparis_no", nos)
             for sno, v in cursor.fetchall(): pz_komisyon[("n11", sno)] = Decimal(str(v))
 
         if "lcw" in by_pz:
-            nos = [r[1] for r in by_pz["lcw"]]
+            nos = [r[8] for r in by_pz["lcw"]]
             cursor.execute(f"SELECT siparis_no, COALESCE(SUM(lcw_komisyon_hakedis),0) FROM lcw_komisyon_faturalari WHERE siparis_no IN ({_ph(nos)}) GROUP BY siparis_no", nos)
             for sno, v in cursor.fetchall(): pz_komisyon[("lcw", sno)] = Decimal(str(v))
             cursor.execute(f"SELECT siparis_no, islem_tipi, COALESCE(SUM(lcw_kargo_hakedis),0), COALESCE(MAX(desi),0) FROM lcw_kargo_faturalari WHERE siparis_no IN ({_ph(nos)}) GROUP BY siparis_no, islem_tipi", nos)
             for sno, tip, t, d in cursor.fetchall(): pz_kargo[("lcw", sno)].append((tip, t, d))
 
         if "hepsiburada" in by_pz:
-            nos = [r[1] for r in by_pz["hepsiburada"]]
+            nos = [r[8] for r in by_pz["hepsiburada"]]
             cursor.execute(f"SELECT siparis_no, COALESCE(SUM(CASE WHEN kayit_turu='Gider' THEN tutar ELSE 0 END),0) FROM hepsiburada_hakedis WHERE siparis_no IN ({_ph(nos)}) AND kayit_sinifi LIKE '%komisyon%' GROUP BY siparis_no", nos)
             for sno, v in cursor.fetchall(): pz_komisyon[("hepsiburada", sno)] = Decimal(str(v))
             cursor.execute(f"SELECT siparis_no, kayit_tipi, COALESCE(SUM(tutar),0) FROM hepsiburada_hakedis WHERE siparis_no IN ({_ph(nos)}) AND kayit_sinifi LIKE '%kargo%' GROUP BY siparis_no, kayit_tipi", nos)
             for sno, tip, t in cursor.fetchall(): pz_kargo[("hepsiburada", sno)].append((tip, t, 0))
 
         if "flo" in by_pz:
-            nos = [r[1] for r in by_pz["flo"]]
+            nos = [r[8] for r in by_pz["flo"]]
             cursor.execute(f"SELECT siparis_no, islem_tipi, COALESCE(SUM(miktar),0) FROM flo_fatura_detay WHERE siparis_no IN ({_ph(nos)}) GROUP BY siparis_no, islem_tipi", nos)
             for sno, tip, t in cursor.fetchall(): pz_kargo[("flo", sno)].append((tip, t, 0))
 
@@ -646,7 +660,7 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None, after_id: int = 0) -> dict:
         karlilik_rows  = []
         mutabakat_rows = []
 
-        for siparis_id, siparis_no, barkod, pz, kategori, satis_tutari, kupon, kampanya_indirimi in siparisler:
+        for siparis_id, siparis_no, barkod, pz, kategori, satis_tutari, kupon, kampanya_indirimi, pz_siparis_no in siparisler:
             try:
                 satis_tutari      = Decimal(str(satis_tutari))
                 kupon             = Decimal(str(kupon))
@@ -665,9 +679,9 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None, after_id: int = 0) -> dict:
                 faturalanan_satis_kargosu = Decimal("0")
                 faturalanan_iade_kargosu  = Decimal("0")
                 faturalanan_desi          = 0
-                gerceklesen_komisyon_pz   = pz_komisyon.get((pz_lower, siparis_no), Decimal("0"))
+                gerceklesen_komisyon_pz   = pz_komisyon.get((pz_lower, pz_siparis_no), Decimal("0"))
 
-                for tip, tutar_raw, desi_raw in pz_kargo.get((pz_lower, siparis_no), []):
+                for tip, tutar_raw, desi_raw in pz_kargo.get((pz_lower, pz_siparis_no), []):
                     tutar    = Decimal(str(tutar_raw))
                     tip_str  = str(tip).lower() if tip else ""
                     desi_int = int(desi_raw or 0)
