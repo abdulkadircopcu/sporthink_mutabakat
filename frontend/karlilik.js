@@ -30,7 +30,7 @@ async function loadOzet(filters = {}) {
 async function loadListe(filters = {}, sayfa = 1) {
   const params = new URLSearchParams({ ...filters, sayfa, limit: 10 }).toString();
   const body = document.getElementById("karlilikBody");
-  body.innerHTML = `<tr><td colspan="13" class="table-empty">Yukleniyor...</td></tr>`;
+  body.innerHTML = `<tr><td colspan="13" class="table-empty">Yükleniyor...</td></tr>`;
 
   try {
     const r = await fetch(`${API_BASE}/karlilik/liste?${params}`);
@@ -39,7 +39,7 @@ async function loadListe(filters = {}, sayfa = 1) {
     document.getElementById("tableCount").textContent = `Toplam: ${d.toplam} siparis`;
 
     if (!d.veriler || d.veriler.length === 0) {
-      body.innerHTML = `<tr><td colspan="12" class="table-empty">Veri bulunamadi.</td></tr>`;
+      body.innerHTML = `<tr><td colspan="13" class="table-empty">Veri bulunamadı.</td></tr>`;
       renderPagination(0, sayfa);
       return;
     }
@@ -58,15 +58,22 @@ async function loadListe(filters = {}, sayfa = 1) {
           ? `<span class="badge badge-red">Zarar</span>`
           : `<span class="badge badge-green">Karlı</span>`;
 
-      const mutBadge = row.mutabakat_durumu
-        ? `<span class="badge badge-${mutabakatRenk(row.mutabakat_durumu)}">${row.mutabakat_durumu}</span>`
-        : "";
+      const sipDurum   = (row.siparis_durumu || "").toLowerCase();
+      const isIade     = sipDurum.includes("iade");
+      const isIptal    = sipDurum.includes("iptal");
+      const sipDurumBadge = isIade
+        ? `<span class="badge badge-yellow">↩ İade</span>`
+        : isIptal
+          ? `<span class="badge badge-red">✕ İptal</span>`
+          : `<span class="badge badge-muted">${row.siparis_durumu || "—"}</span>`;
+
       return `
         <tr class="${isZarar ? "row-zarar" : ""}">
           <td>${row.siparis_tarihi || "—"}</td>
           <td>${MP_EMOJIS[row.pazaryeri] || ""} ${row.pazaryeri}</td>
           <td class="mono">${row.pazaryeri_siparis_no || row.siparis_no}</td>
           <td class="urun-adi" title="${row.urun_adi || ""}">${truncate(row.urun_adi, 30)}</td>
+          <td>${sipDurumBadge}</td>
           <td>${fmtCur(row.satis_tutari)}</td>
           <td>${maliyet ? fmtCur(maliyet) : '<span style="color:#888">—</span>'}</td>
           <td>${fmtCur(row.komisyon)}</td>
@@ -80,7 +87,7 @@ async function loadListe(filters = {}, sayfa = 1) {
 
     renderPagination(d.toplam, sayfa);
   } catch(e) {
-    body.innerHTML = `<tr><td colspan="12" class="table-empty" style="color:var(--red)">Hata: ${e.message}</td></tr>`;
+    body.innerHTML = `<tr><td colspan="13" class="table-empty" style="color:var(--red)">Hata: ${e.message}</td></tr>`;
   }
 }
 
