@@ -1,6 +1,5 @@
 import os
 import sys
-import json
 from datetime import datetime
 from flask import Blueprint, request, jsonify, current_app
 
@@ -19,31 +18,61 @@ from importers.hammurlab_importer import HamurlabSiparisImporter, HamurlabIptalI
 upload_bp = Blueprint("upload", __name__)
 
 # -------------------------------------------------------
-# Log dosyası yolu
+# Upload geçmişi — veritabanı tabanlı
 # -------------------------------------------------------
-LOG_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "upload_logs.json")
+_log_table_ensured = False
+
+def _ensure_log_table():
+    global _log_table_ensured
+    if _log_table_ensured:
+        return
+    try:
+        conn = _get_db()
+        cur  = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS upload_gecmisi (
+                id           INT AUTO_INCREMENT PRIMARY KEY,
+                tarih        VARCHAR(25)  NOT NULL,
+                marketplace  VARCHAR(50)  NOT NULL,
+                data_type    VARCHAR(50)  NOT NULL,
+                dosya        VARCHAR(255) NOT NULL,
+                satir_sayisi INT          DEFAULT 0,
+                durum        VARCHAR(20)  NOT NULL,
+                hata         TEXT
+            )
+        """)
+        conn.commit()
+        cur.close()
+        conn.close()
+        _log_table_ensured = True
+    except Exception as e:
+        print(f"[UPLOAD_LOG] Tablo olusturulamadi: {e}")
 
 def log_yaz(marketplace, data_type, dosya_adi, satir_sayisi, durum, hata_mesaji=None):
+    _ensure_log_table()
+    tarih = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
     kayit = {
-        "tarih": datetime.now().strftime("%d.%m.%Y %H:%M:%S"),
-        "marketplace": marketplace,
-        "data_type": data_type,
-        "dosya": dosya_adi,
+        "tarih":        tarih,
+        "marketplace":  marketplace,
+        "data_type":    data_type,
+        "dosya":        dosya_adi,
         "satir_sayisi": satir_sayisi,
-        "durum": durum,
-        "hata": hata_mesaji
+        "durum":        durum,
+        "hata":         hata_mesaji,
     }
-    loglar = []
-    if os.path.exists(LOG_FILE):
-        try:
-            with open(LOG_FILE, "r", encoding="utf-8") as f:
-                loglar = json.load(f)
-        except Exception:
-            loglar = []
-    loglar.insert(0, kayit)
-    loglar = loglar[:200]
-    with open(LOG_FILE, "w", encoding="utf-8") as f:
-        json.dump(loglar, f, ensure_ascii=False, indent=2)
+    try:
+        conn = _get_db()
+        cur  = conn.cursor()
+        cur.execute("""
+            INSERT INTO upload_gecmisi
+                (tarih, marketplace, data_type, dosya, satir_sayisi, durum, hata)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (tarih, marketplace, data_type, dosya_adi, satir_sayisi, durum, hata_mesaji))
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"[UPLOAD_LOG] DB yazma hatasi: {e}")
     return kayit
 
 
@@ -252,11 +281,20 @@ def upload():
 # -------------------------------------------------------
 @upload_bp.route("/logs", methods=["GET"])
 def get_logs():
-    if not os.path.exists(LOG_FILE):
-        return jsonify([])
+    _ensure_log_table()
     try:
-        with open(LOG_FILE, "r", encoding="utf-8") as f:
-            return jsonify(json.load(f))
+        conn   = _get_db()
+        cur    = conn.cursor(dictionary=True)
+        cur.execute("""
+            SELECT tarih, marketplace, data_type, dosya, satir_sayisi, durum, hata
+            FROM upload_gecmisi
+            ORDER BY id DESC
+            LIMIT 200
+        """)
+        loglar = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify(loglar)
     except Exception:
         return jsonify([])
 
