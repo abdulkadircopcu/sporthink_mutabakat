@@ -189,7 +189,8 @@ def mutabakat_hesapla():
         return jsonify({"basarili": True, "ozet": ozet})
     except BaseException as e:
         import traceback
-        return jsonify({"basarili": False, "hata": str(e), "detay": traceback.format_exc()}), 500
+        hata = str(e) if str(e) else type(e).__name__
+        return jsonify({"basarili": False, "hata": hata, "detay": traceback.format_exc()}), 500
 
 
 # ── Mutabakat Özeti ──

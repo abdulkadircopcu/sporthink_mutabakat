@@ -529,26 +529,6 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None, after_id: int = 0) -> dict:
             params.append(after_id)
         where = " AND ".join(where_parts) if where_parts else "1=1"
 
-        # İlk batch'te (after_id == 0) yeni siparişleri "beklemede" olarak ekle
-        if after_id == 0:
-            if pazaryeri:
-                cursor.execute("""
-                    INSERT IGNORE INTO mutabakat (siparis_id, pazaryeri, mutabakat_durumu, mutabakat_tarihi)
-                    SELECT k.id, k.pazaryeri, 'beklemede', NOW()
-                    FROM karlilik_ozeti k
-                    LEFT JOIN mutabakat m ON m.siparis_id = k.id
-                    WHERE m.id IS NULL AND k.pazaryeri = %s
-                """, (pazaryeri,))
-            else:
-                cursor.execute("""
-                    INSERT IGNORE INTO mutabakat (siparis_id, pazaryeri, mutabakat_durumu, mutabakat_tarihi)
-                    SELECT k.id, k.pazaryeri, 'beklemede', NOW()
-                    FROM karlilik_ozeti k
-                    LEFT JOIN mutabakat m ON m.siparis_id = k.id
-                    WHERE m.id IS NULL
-                """)
-            conn.commit()
-
         select_sql = f"""
             SELECT id, siparis_no, barkod, pazaryeri,
                    COALESCE(kategori, ''), COALESCE(satis_tutari, 0),
