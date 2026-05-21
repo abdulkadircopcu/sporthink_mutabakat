@@ -715,6 +715,7 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None, after_id: int = 0) -> dict:
                 karlilik_rows.append((
                     float(faturalanan_desi), float(hesaplanan_desi),
                     float(beklenen_komisyon), float(faturalanan_komisyon),
+                    float(faturalanan_satis_kargosu),
                     durum.value, siparis_id,
                 ))
                 mutabakat_rows.append((
@@ -738,23 +739,25 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None, after_id: int = 0) -> dict:
             # CASE WHEN ile tek UPDATE sorgusunda tüm satırlar
             # Her sütun için parametre listesi ayrı tutulur, sonra birleştirilir
             when_clause = "WHEN %s THEN %s"
-            w_fd, w_td, w_hk, w_fk, w_dur = [], [], [], [], []
-            p_fd, p_td, p_hk, p_fk, p_dur = [], [], [], [], []
+            w_fd, w_td, w_hk, w_fk, w_sk, w_dur = [], [], [], [], [], []
+            p_fd, p_td, p_hk, p_fk, p_sk, p_dur = [], [], [], [], [], []
             ids = []
-            for fd, td, hk, fk, dur, sid in karlilik_rows:
+            for fd, td, hk, fk, sk, dur, sid in karlilik_rows:
                 w_fd.append(when_clause);  p_fd  += [sid, fd]
                 w_td.append(when_clause);  p_td  += [sid, td]
                 w_hk.append(when_clause);  p_hk  += [sid, hk]
                 w_fk.append(when_clause);  p_fk  += [sid, fk]
+                w_sk.append(when_clause);  p_sk  += [sid, sk]
                 w_dur.append(when_clause); p_dur += [sid, dur]
                 ids.append(sid)
-            p_flat = p_fd + p_td + p_hk + p_fk + p_dur + ids
+            p_flat = p_fd + p_td + p_hk + p_fk + p_sk + p_dur + ids
             cursor.execute(f"""
                 UPDATE karlilik_ozeti SET
                     faturalanan_desi            = CASE id {" ".join(w_fd)}  END,
                     tahmini_desi                = CASE id {" ".join(w_td)}  END,
                     hesaplanan_komisyon_tutari  = CASE id {" ".join(w_hk)}  END,
                     faturalanan_komisyon_tutari = CASE id {" ".join(w_fk)}  END,
+                    satis_kargosu               = CASE id {" ".join(w_sk)}  END,
                     mutabakat_durumu            = CASE id {" ".join(w_dur)} END
                 WHERE id IN ({",".join(["%s"]*len(ids))})
             """, p_flat)

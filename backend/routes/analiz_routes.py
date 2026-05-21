@@ -10,6 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 analiz_bp = Blueprint("analiz", __name__)
 
 def get_conn():
+    import certifi
     cfg = {
         "host":     os.environ.get("DB_HOST", "localhost"),
         "port":     int(os.environ.get("DB_PORT", 3306)),
@@ -17,11 +18,10 @@ def get_conn():
         "password": os.environ.get("DB_PASSWORD", ""),
         "database": os.environ.get("DB_NAME", "sporthink_mutabakat"),
         "charset":  "utf8mb4",
+        "ssl_ca":            os.environ.get("DB_SSL_CA") or certifi.where(),
+        "ssl_verify_cert":   False,
+        "ssl_verify_identity": False,
     }
-    if os.environ.get("DB_SSL_CA"):
-        cfg["ssl_ca"] = os.environ["DB_SSL_CA"]
-    else:
-        cfg["ssl_disabled"] = True
     return mysql.connector.connect(**cfg)
 
 
@@ -264,8 +264,7 @@ def mutabakat_ozet():
                 except: pass
     return jsonify(rows)
 
-
-# ── Mutabakat Tam Liste ──
+# ── Mutabakat Tam Liste — Sipariş Bazlı ──
 @analiz_bp.route("/mutabakat/liste", methods=["GET"])
 def mutabakat_liste():
     pazaryeri = request.args.get("pazaryeri")
@@ -283,49 +282,60 @@ def mutabakat_liste():
 
     w = " AND ".join(where)
 
-    count_sql = f"SELECT COUNT(*) FROM mutabakat m WHERE {w}"
-    data_sql  = f"""
+    # Sipariş bazlı gruplama: aynı sipariş_no'ya ait birden fazla kalem (ör. farklı barkod)
+    # varsa kargo/komisyon sipariş başına ödenir → MAX alınır, tekrar etmez.
+    # Mutabakat tablosunda siparis_id unique olsa da gerçek verilerinde
+    # aynı siparis_no'ya birden fazla karlilik_ozeti satırı olabilir.
+    inner_sql = f"""
         SELECT
-            m.id,
-            m.siparis_id,
-            m.pazaryeri,
-            m.mutabakat_durumu,
-            m.fark_var_mi,
-            m.mukrerrer_mi,
-            COALESCE(m.beklenen_odeme,          0) AS beklenen_odeme,
-            COALESCE(m.beklenen_komisyon,        0) AS beklenen_komisyon,
-            COALESCE(m.beklenen_kargo,           0) AS beklenen_kargo,
-            COALESCE(m.gerceklesen_odeme,        0) AS gerceklesen_odeme,
-            COALESCE(m.faturalanan_komisyon,     0) AS faturalanan_komisyon,
-            COALESCE(m.faturalanan_satis_kargosu,0) AS faturalanan_satis_kargosu,
-            COALESCE(m.faturalanan_iade_kargosu, 0) AS faturalanan_iade_kargosu,
-            COALESCE(m.odeme_farki,              0) AS odeme_farki,
-            COALESCE(m.komisyon_farki,           0) AS komisyon_farki,
-            COALESCE(m.kargo_farki,              0) AS kargo_farki,
-            m.guven_skoru,
-            m.notlar,
-            DATE_FORMAT(m.mutabakat_tarihi, '%d.%m.%Y') AS mutabakat_tarihi,
+            MIN(m.id)                                          AS id,
+            MAX(m.pazaryeri)                                   AS pazaryeri,
+            MAX(m.mutabakat_durumu)                            AS mutabakat_durumu,
+            MAX(m.fark_var_mi)                                 AS fark_var_mi,
+            MAX(m.mukrerrer_mi)                                AS mukrerrer_mi,
+            -- Ödeme: sipariş kalemlerinin toplamı
+            COALESCE(SUM(m.beklenen_odeme),          0)        AS beklenen_odeme,
+            -- Komisyon: sipariş başına tek kesilir → MAX
+            COALESCE(MAX(m.beklenen_komisyon),        0)        AS beklenen_komisyon,
+            -- Kargo: sipariş başına tek kesilir → MAX
+            COALESCE(MAX(m.beklenen_kargo),           0)        AS beklenen_kargo,
+            COALESCE(SUM(m.gerceklesen_odeme),        0)        AS gerceklesen_odeme,
+            COALESCE(MAX(m.faturalanan_komisyon),     0)        AS faturalanan_komisyon,
+            COALESCE(MAX(m.faturalanan_satis_kargosu),0)        AS faturalanan_satis_kargosu,
+            COALESCE(MAX(m.faturalanan_iade_kargosu), 0)        AS faturalanan_iade_kargosu,
+            COALESCE(SUM(m.odeme_farki),              0)        AS odeme_farki,
+            COALESCE(SUM(m.komisyon_farki),           0)        AS komisyon_farki,
+            COALESCE(SUM(m.kargo_farki),              0)        AS kargo_farki,
+            MAX(m.guven_skoru)                                  AS guven_skoru,
+            MAX(m.notlar)                                       AS notlar,
+            DATE_FORMAT(MAX(m.mutabakat_tarihi), '%d.%m.%Y')   AS mutabakat_tarihi,
             -- Sipariş bilgileri (karlilik_ozeti'nden)
             k.siparis_no,
-            k.pazaryeri_siparis_no,
-            k.barkod,
-            k.urun_adi,
-            k.siparis_durumu,
-            DATE_FORMAT(k.siparis_tarihi, '%d.%m.%Y') AS siparis_tarihi
+            MAX(k.pazaryeri_siparis_no)                         AS pazaryeri_siparis_no,
+            GROUP_CONCAT(DISTINCT k.barkod ORDER BY k.barkod SEPARATOR ', ') AS barkod,
+            GROUP_CONCAT(DISTINCT k.urun_adi ORDER BY k.urun_adi SEPARATOR ' / ') AS urun_adi,
+            MAX(k.siparis_durumu)                               AS siparis_durumu,
+            DATE_FORMAT(MAX(k.siparis_tarihi), '%d.%m.%Y')     AS siparis_tarihi
         FROM mutabakat m
         LEFT JOIN karlilik_ozeti k ON k.id = m.siparis_id
         WHERE {w}
-        ORDER BY m.id DESC
+        GROUP BY k.siparis_no
+    """
+
+    count_sql = f"SELECT COUNT(*) FROM ({inner_sql}) sub"
+    data_sql  = f"""
+        SELECT * FROM ({inner_sql}) sub
+        ORDER BY id DESC
         LIMIT %s OFFSET %s
     """
 
     conn = get_conn()
     cur  = conn.cursor(dictionary=True)
 
-    cur.execute(count_sql, params)
+    cur.execute(count_sql, params + params)
     toplam = cur.fetchone()["COUNT(*)"]
 
-    cur.execute(data_sql, params + [limit, offset])
+    cur.execute(data_sql, params + params + [limit, offset])
     rows = cur.fetchall()
     cur.close(); conn.close()
 

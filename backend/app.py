@@ -9,6 +9,13 @@ except Exception:
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+# .env dosyasını yükle
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+except ImportError:
+    pass
+
 from flask import Flask, send_from_directory
 from flask_cors import CORS
 from routes.upload_routes import upload_bp
@@ -23,6 +30,13 @@ FRONTEND_DIR = os.path.abspath(FRONTEND_DIR)
 
 app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path="")
 CORS(app)
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    import traceback
+    from flask import jsonify
+    print("HATA:", traceback.format_exc())
+    return jsonify({"hata": str(e), "tip": type(e).__name__}), 500
 
 # Ana sayfa → index.html'i sun
 @app.route("/")

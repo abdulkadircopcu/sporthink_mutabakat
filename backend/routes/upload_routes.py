@@ -314,10 +314,10 @@ def _get_db():
         "database": os.environ.get("DB_NAME", "sporthink_mutabakat"),
         "charset":  "utf8mb4",
     }
-    if os.environ.get("DB_SSL_CA"):
-        cfg["ssl_ca"] = os.environ["DB_SSL_CA"]
-    else:
-        cfg["ssl_disabled"] = True
+    import certifi
+    cfg["ssl_ca"] = os.environ.get("DB_SSL_CA") or certifi.where()
+    cfg["ssl_verify_cert"] = False
+    cfg["ssl_verify_identity"] = False
     return mysql.connector.connect(**cfg)
 
 
