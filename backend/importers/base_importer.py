@@ -32,13 +32,19 @@ class BaseImporter:
         self.user     = user     or os.environ.get("DB_USER",     "root")
         self.password = password or os.environ.get("DB_PASSWORD", "")
 
-        import certifi
-        ssl_ca = os.environ.get("DB_SSL_CA") or certifi.where()
-        engine_str = (
-            f"mysql+mysqlconnector://{self.user}:{self.password}"
-            f"@{self.host}:{self.port}/{self.db_name}"
-            f"?charset=utf8mb4&ssl_ca={ssl_ca}&ssl_verify_cert=false&ssl_verify_identity=false"
-        )
+        ssl_ca = os.environ.get("DB_SSL_CA")
+        if ssl_ca:
+            engine_str = (
+                f"mysql+mysqlconnector://{self.user}:{self.password}"
+                f"@{self.host}:{self.port}/{self.db_name}"
+                f"?charset=utf8mb4&ssl_ca={ssl_ca}"
+            )
+        else:
+            engine_str = (
+                f"mysql+mysqlconnector://{self.user}:{self.password}"
+                f"@{self.host}:{self.port}/{self.db_name}"
+                f"?charset=utf8mb4&ssl_disabled=true"
+            )
         self.engine = create_engine(engine_str)
 
     def prepare_df(self, excel_path):

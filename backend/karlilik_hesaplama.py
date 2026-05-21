@@ -15,7 +15,6 @@ from datetime import datetime
 # ------------------------------------------------------------
 
 def get_db_connection():
-    import certifi
     return mysql.connector.connect(
         host=os.environ.get("DB_HOST", "localhost"),
         port=int(os.environ.get("DB_PORT", 3306)),
@@ -23,9 +22,8 @@ def get_db_connection():
         password=os.environ.get("DB_PASSWORD", ""),
         database=os.environ.get("DB_NAME", "sporthink_mutabakat"),
         charset="utf8mb4",
-        ssl_ca=os.environ.get("DB_SSL_CA") or certifi.where(),
-        ssl_verify_cert=False,
-        ssl_verify_identity=False,
+        ssl_ca=os.environ.get("DB_SSL_CA") or None,
+        ssl_disabled=not bool(os.environ.get("DB_SSL_CA"))
     )
 
 

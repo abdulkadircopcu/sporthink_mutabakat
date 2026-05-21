@@ -10,7 +10,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 analiz_bp = Blueprint("analiz", __name__)
 
 def get_conn():
-    import certifi
     cfg = {
         "host":     os.environ.get("DB_HOST", "localhost"),
         "port":     int(os.environ.get("DB_PORT", 3306)),
@@ -18,10 +17,11 @@ def get_conn():
         "password": os.environ.get("DB_PASSWORD", ""),
         "database": os.environ.get("DB_NAME", "sporthink_mutabakat"),
         "charset":  "utf8mb4",
-        "ssl_ca":            os.environ.get("DB_SSL_CA") or certifi.where(),
-        "ssl_verify_cert":   False,
-        "ssl_verify_identity": False,
     }
+    if os.environ.get("DB_SSL_CA"):
+        cfg["ssl_ca"] = os.environ["DB_SSL_CA"]
+    else:
+        cfg["ssl_disabled"] = True
     return mysql.connector.connect(**cfg)
 
 
