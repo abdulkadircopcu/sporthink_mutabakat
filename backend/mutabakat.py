@@ -123,15 +123,23 @@ def gerceklesen_degerler_hesapla(
         row = cursor.fetchone()
         r["faturalanan_komisyon"] = Decimal(str(row[0]))
 
-        # Kargo + desi (siparis_no hem direkt hem "takip_siparis" formatında gelebilir)
+        # Kargo + desi: önce direkt eşleşme (index kullanır), bulamazsa takip_no formatı
         cursor.execute("""
             SELECT gonderi_iade, COALESCE(SUM(gonderi_ucreti), 0), COALESCE(MAX(desi), 0)
             FROM trendyol_kargo_faturalari
             WHERE siparis_no = %s
-               OR siparis_no LIKE CONCAT('%%\\_', %s)
             GROUP BY gonderi_iade
-        """, (pazaryeri_siparis_no, pazaryeri_siparis_no))
-        for gonderi_iade, tutar, desi in cursor.fetchall():
+        """, (pazaryeri_siparis_no,))
+        kargo_rows = cursor.fetchall()
+        if not kargo_rows:
+            cursor.execute("""
+                SELECT gonderi_iade, COALESCE(SUM(gonderi_ucreti), 0), COALESCE(MAX(desi), 0)
+                FROM trendyol_kargo_faturalari
+                WHERE siparis_no LIKE CONCAT('%%\\_', %s)
+                GROUP BY gonderi_iade
+            """, (pazaryeri_siparis_no,))
+            kargo_rows = cursor.fetchall()
+        for gonderi_iade, tutar, desi in kargo_rows:
             if gonderi_iade and "iade" in str(gonderi_iade).lower():
                 r["faturalanan_iade_kargosu"] += Decimal(str(tutar))
             else:
