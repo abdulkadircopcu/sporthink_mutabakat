@@ -414,6 +414,101 @@ def kargo_desi_liste():
     return jsonify({"toplam": toplam, "sayfa": sayfa, "limit": limit, "veriler": rows})
 
 
+# ── İptaller (Hammurlab) ──
+@analiz_bp.route("/karlilik/iptaller", methods=["GET"])
+def karlilik_iptaller():
+    sayfa = int(request.args.get("sayfa", 1))
+    limit = int(request.args.get("limit", 10))
+    offset = (sayfa - 1) * limit
+
+    conn = get_conn()
+    cur  = conn.cursor(dictionary=True)
+
+    cur.execute("SELECT COUNT(*) FROM hamurlab_iptal_iade")
+    toplam = cur.fetchone()["COUNT(*)"]
+
+    cur.execute("""
+        SELECT
+            id,
+            DATE_FORMAT(iade_iptal_tarihi, '%d.%m.%Y') AS iade_iptal_tarihi,
+            magaza,
+            siparis_no,
+            takip_no,
+            urun_adi,
+            barkod,
+            iade_iptal_adedi,
+            COALESCE(satis_fiyati, 0)            AS satis_fiyati,
+            COALESCE(iade_iptal_satis_fiyati, 0) AS iade_iptal_satis_fiyati,
+            COALESCE(iade_edilecek_toplam_tutar, 0) AS iade_edilecek_toplam_tutar,
+            neden,
+            iade_iptal_turu,
+            siparis_durumu,
+            durum,
+            musteri
+        FROM hamurlab_iptal_iade
+        ORDER BY iade_iptal_tarihi DESC, id DESC
+        LIMIT %s OFFSET %s
+    """, (limit, offset))
+    rows = cur.fetchall()
+    cur.close(); conn.close()
+
+    for row in rows:
+        for k, v in row.items():
+            if v is not None:
+                try: row[k] = float(v)
+                except: pass
+
+    return jsonify({"toplam": toplam, "sayfa": sayfa, "limit": limit, "veriler": rows})
+
+
+# ── İadeler (Hitit) ──
+@analiz_bp.route("/karlilik/iadeler", methods=["GET"])
+def karlilik_iadeler():
+    sayfa = int(request.args.get("sayfa", 1))
+    limit = int(request.args.get("limit", 10))
+    offset = (sayfa - 1) * limit
+
+    conn = get_conn()
+    cur  = conn.cursor(dictionary=True)
+
+    cur.execute("SELECT COUNT(*) FROM hitit_iadeler")
+    toplam = cur.fetchone()["COUNT(*)"]
+
+    cur.execute("""
+        SELECT
+            id,
+            satis_yeri_kodu,
+            satis_yeri_adi,
+            DATE_FORMAT(iade_fatura_tarihi, '%d.%m.%Y') AS iade_fatura_tarihi,
+            siparis_no,
+            takip_no,
+            barkod,
+            stok_kodu,
+            marka,
+            COALESCE(urun_adedi, 0)          AS urun_adedi,
+            COALESCE(urun_tutari_kdvsiz, 0)  AS urun_tutari_kdvsiz,
+            COALESCE(urun_kdv_tutari, 0)     AS urun_kdv_tutari,
+            COALESCE(urun_tutari_kdvli, 0)   AS urun_tutari_kdvli,
+            musteri_kodu,
+            musteri_adi_soyadi,
+            iade_fatura_no,
+            eticaret_web_adresi
+        FROM hitit_iadeler
+        ORDER BY iade_fatura_tarihi DESC, id DESC
+        LIMIT %s OFFSET %s
+    """, (limit, offset))
+    rows = cur.fetchall()
+    cur.close(); conn.close()
+
+    for row in rows:
+        for k, v in row.items():
+            if v is not None:
+                try: row[k] = float(v)
+                except: pass
+
+    return jsonify({"toplam": toplam, "sayfa": sayfa, "limit": limit, "veriler": rows})
+
+
 # ── Kargo Desi — Pazaryeri Bazlı Özet (sipariş bazlı) ──
 @analiz_bp.route("/kargo-desi/pazaryeri", methods=["GET"])
 def kargo_desi_pazaryeri():

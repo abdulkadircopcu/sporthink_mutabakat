@@ -162,6 +162,153 @@ document.getElementById("filterSifirlaBtn").addEventListener("click", () => {
 loadOzet();
 loadListe();
 loadKarsilastirma();
+loadIptaller();
+loadIadeler();
+
+
+// ── İptaller (Hammurlab) ──
+let iptalPage = 1;
+
+async function loadIptaller(sayfa = 1) {
+  const body = document.getElementById("iptalBody");
+  body.innerHTML = `<tr><td colspan="10" class="table-empty">Yükleniyor...</td></tr>`;
+  try {
+    const r = await fetch(`${API_BASE}/karlilik/iptaller?sayfa=${sayfa}&limit=10`);
+    const d = await r.json();
+    document.getElementById("iptalCount").textContent = `Toplam: ${d.toplam} kayıt`;
+    if (!d.veriler || d.veriler.length === 0) {
+      body.innerHTML = `<tr><td colspan="10" class="table-empty">Kayıt bulunamadı.</td></tr>`;
+      document.getElementById("iptalPagination").innerHTML = "";
+      return;
+    }
+    body.innerHTML = d.veriler.map(row => `
+      <tr>
+        <td>${row.iade_iptal_tarihi || "—"}</td>
+        <td>${row.magaza || "—"}</td>
+        <td class="mono">${row.siparis_no || "—"}</td>
+        <td class="urun-adi" title="${row.urun_adi || ""}">${truncate(row.urun_adi, 30)}</td>
+        <td class="mono">${row.barkod || "—"}</td>
+        <td style="text-align:center">${row.iade_iptal_adedi ?? "—"}</td>
+        <td style="text-align:right">${row.satis_fiyati ? fmtCur(row.satis_fiyati) : "—"}</td>
+        <td style="text-align:right;color:var(--red)">${row.iade_iptal_satis_fiyati ? fmtCur(row.iade_iptal_satis_fiyati) : "—"}</td>
+        <td>${row.neden || "—"}</td>
+        <td><span class="badge ${row.iade_iptal_turu && row.iade_iptal_turu.toLowerCase().includes('iptal') ? 'badge-red' : 'badge-yellow'}">${row.iade_iptal_turu || "—"}</span></td>
+      </tr>`).join("");
+    renderIptalPagination(d.toplam, sayfa);
+  } catch(e) {
+    body.innerHTML = `<tr><td colspan="10" class="table-empty" style="color:var(--red)">Hata: ${e.message}</td></tr>`;
+  }
+}
+
+function renderIptalPagination(toplam, current) {
+  const totalPages = Math.ceil(toplam / 10);
+  const el = document.getElementById("iptalPagination");
+  if (totalPages <= 1) { el.innerHTML = ""; return; }
+  const pages = [];
+  if (totalPages <= 7) { for (let i = 1; i <= totalPages; i++) pages.push(i); }
+  else {
+    pages.push(1);
+    if (current > 3) pages.push("…");
+    for (let i = Math.max(2, current - 1); i <= Math.min(totalPages - 1, current + 1); i++) pages.push(i);
+    if (current < totalPages - 2) pages.push("…");
+    pages.push(totalPages);
+  }
+  el.innerHTML = pages.map(p =>
+    p === "…"
+      ? `<span class="page-ellipsis">…</span>`
+      : `<button type="button" class="page-btn${p === current ? " active" : ""}" onclick="goIptalPage(${p})">${p}</button>`
+  ).join("");
+}
+
+function goIptalPage(p) {
+  iptalPage = p;
+  loadIptaller(p);
+  document.getElementById("iptalIadeCard")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+
+// ── İadeler (Hitit) ──
+let iadePage = 1;
+
+async function loadIadeler(sayfa = 1) {
+  const body = document.getElementById("iadeBody");
+  body.innerHTML = `<tr><td colspan="12" class="table-empty">Yükleniyor...</td></tr>`;
+  try {
+    const r = await fetch(`${API_BASE}/karlilik/iadeler?sayfa=${sayfa}&limit=10`);
+    const d = await r.json();
+    document.getElementById("iadeCount").textContent = `Toplam: ${d.toplam} kayıt`;
+    if (!d.veriler || d.veriler.length === 0) {
+      body.innerHTML = `<tr><td colspan="12" class="table-empty">Kayıt bulunamadı.</td></tr>`;
+      document.getElementById("iadePagination").innerHTML = "";
+      return;
+    }
+    body.innerHTML = d.veriler.map(row => `
+      <tr>
+        <td>${row.iade_fatura_tarihi || "—"}</td>
+        <td>${row.satis_yeri_adi || "—"}</td>
+        <td class="mono">${row.siparis_no || "—"}</td>
+        <td class="mono">${row.takip_no || "—"}</td>
+        <td class="mono">${row.barkod || "—"}</td>
+        <td>${row.stok_kodu || "—"}</td>
+        <td style="text-align:center">${row.urun_adedi ?? "—"}</td>
+        <td style="text-align:right">${row.urun_tutari_kdvsiz != null ? fmtCur(row.urun_tutari_kdvsiz) : "—"}</td>
+        <td style="text-align:right;color:var(--yellow)">${row.urun_kdv_tutari != null ? fmtCur(row.urun_kdv_tutari) : "—"}</td>
+        <td style="text-align:right;color:var(--red);font-weight:600">${row.urun_tutari_kdvli != null ? fmtCur(row.urun_tutari_kdvli) : "—"}</td>
+        <td>${row.marka || "—"}</td>
+        <td>${row.musteri_adi_soyadi || "—"}</td>
+      </tr>`).join("");
+    renderIadePagination(d.toplam, sayfa);
+  } catch(e) {
+    body.innerHTML = `<tr><td colspan="12" class="table-empty" style="color:var(--red)">Hata: ${e.message}</td></tr>`;
+  }
+}
+
+function renderIadePagination(toplam, current) {
+  const totalPages = Math.ceil(toplam / 10);
+  const el = document.getElementById("iadePagination");
+  if (totalPages <= 1) { el.innerHTML = ""; return; }
+  const pages = [];
+  if (totalPages <= 7) { for (let i = 1; i <= totalPages; i++) pages.push(i); }
+  else {
+    pages.push(1);
+    if (current > 3) pages.push("…");
+    for (let i = Math.max(2, current - 1); i <= Math.min(totalPages - 1, current + 1); i++) pages.push(i);
+    if (current < totalPages - 2) pages.push("…");
+    pages.push(totalPages);
+  }
+  el.innerHTML = pages.map(p =>
+    p === "…"
+      ? `<span class="page-ellipsis">…</span>`
+      : `<button type="button" class="page-btn${p === current ? " active" : ""}" onclick="goIadePage(${p})">${p}</button>`
+  ).join("");
+}
+
+function goIadePage(p) {
+  iadePage = p;
+  loadIadeler(p);
+  document.getElementById("iptalIadeCard")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+
+// İptaller/İadeler Tab geçişleri
+document.getElementById("iptalIadeTabs").addEventListener("click", (e) => {
+  const btn = e.target.closest(".kars-tab");
+  if (!btn) return;
+  document.querySelectorAll("#iptalIadeTabs .kars-tab").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  const tab = btn.dataset.tab;
+  document.getElementById("panelIptaller").style.display = tab === "iptaller" ? "" : "none";
+  document.getElementById("panelIadeler").style.display  = tab === "iadeler"  ? "" : "none";
+});
+
+// İptaller/İadeler Gizle/Göster toggle
+document.getElementById("iptalIadeToggle").addEventListener("click", () => {
+  const icerik = document.getElementById("iptalIadeIcerik");
+  const toggle = document.getElementById("iptalIadeToggle");
+  const gizli  = icerik.style.display === "none";
+  icerik.style.display = gizli ? "" : "none";
+  toggle.textContent   = gizli ? "▼ Gizle" : "► Göster";
+});
 
 
 // ── Pazaryeri Karşılaştırma ──
