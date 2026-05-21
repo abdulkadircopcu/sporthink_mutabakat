@@ -342,7 +342,10 @@ def siparis_mutabakat_yap(pazaryeri_siparis_no: str, pazaryeri: str) -> dict:
         conn.rollback()
         raise e
     finally:
-        cursor.close()
+        try:
+            cursor.close()
+        except Exception:
+            pass
         conn.close()
 
 
@@ -372,7 +375,10 @@ def toplu_mutabakat_yap(pazaryeri: str = None) -> dict:
             """)
         siparisler = cursor.fetchall()
     finally:
-        cursor.close()
+        try:
+            cursor.close()
+        except Exception:
+            pass
         conn.close()
 
     ozet = {
@@ -642,7 +648,10 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None) -> dict:
         conn.rollback()
         raise e
     finally:
-        cursor.close()
+        try:
+            cursor.close()
+        except Exception:
+            pass
         conn.close()
 
 
