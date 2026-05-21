@@ -181,11 +181,13 @@ def mutabakat_hesapla():
     try:
         import mutabakat as mut_module
         pazaryeri = None
+        after_id  = 0
         if request.is_json and request.json:
             pazaryeri = request.json.get("pazaryeri")
-        ozet = mut_module.toplu_mutabakat_hesapla(pazaryeri)
+            after_id  = int(request.json.get("after_id", 0))
+        ozet = mut_module.toplu_mutabakat_hesapla(pazaryeri, after_id=after_id)
         return jsonify({"basarili": True, "ozet": ozet})
-    except Exception as e:
+    except BaseException as e:
         import traceback
         return jsonify({"basarili": False, "hata": str(e), "detay": traceback.format_exc()}), 500
 

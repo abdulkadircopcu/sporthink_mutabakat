@@ -501,9 +501,13 @@ def _kargo_fiyati_getir(cursor, pazaryeri: str, desi: Decimal) -> Decimal:
     return Decimal(str(row[0])) if row else Decimal("0")
 
 
-def toplu_mutabakat_hesapla(pazaryeri: str = None) -> dict:
+BATCH_LIMIT = 100
+
+
+def toplu_mutabakat_hesapla(pazaryeri: str = None, after_id: int = 0) -> dict:
     """
     karlilik_ozeti + hamurlab_siparisler verilerinden mutabakat hesaplar.
+    Timeout'u önlemek için BATCH_LIMIT kadar sipariş işler; after_id ile sayfalama yapılır.
 
     - beklenen_komisyon  : komisyon_oranlari tablosundan hesaplanır
     - faturalanan_komisyon: hamurlab_siparisler.komisyon
@@ -515,46 +519,56 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None) -> dict:
     cursor = conn.cursor(buffered=True)
 
     try:
-        where  = "1=1"
-        params = []
+        where_parts = []
+        params      = []
         if pazaryeri:
-            where = "pazaryeri = %s"
+            where_parts.append("pazaryeri = %s")
             params.append(pazaryeri)
+        if after_id > 0:
+            where_parts.append("id > %s")
+            params.append(after_id)
+        where = " AND ".join(where_parts) if where_parts else "1=1"
 
-        # Henüz mutabakat kaydı olmayan tüm siparişleri "beklemede" olarak ekle
-        if pazaryeri:
-            cursor.execute("""
-                INSERT IGNORE INTO mutabakat (siparis_id, pazaryeri, mutabakat_durumu, mutabakat_tarihi)
-                SELECT k.id, k.pazaryeri, 'beklemede', NOW()
-                FROM karlilik_ozeti k
-                LEFT JOIN mutabakat m ON m.siparis_id = k.id
-                WHERE m.id IS NULL AND k.pazaryeri = %s
-            """, (pazaryeri,))
-        else:
-            cursor.execute("""
-                INSERT IGNORE INTO mutabakat (siparis_id, pazaryeri, mutabakat_durumu, mutabakat_tarihi)
-                SELECT k.id, k.pazaryeri, 'beklemede', NOW()
-                FROM karlilik_ozeti k
-                LEFT JOIN mutabakat m ON m.siparis_id = k.id
-                WHERE m.id IS NULL
-            """)
-        conn.commit()
+        # İlk batch'te (after_id == 0) yeni siparişleri "beklemede" olarak ekle
+        if after_id == 0:
+            if pazaryeri:
+                cursor.execute("""
+                    INSERT IGNORE INTO mutabakat (siparis_id, pazaryeri, mutabakat_durumu, mutabakat_tarihi)
+                    SELECT k.id, k.pazaryeri, 'beklemede', NOW()
+                    FROM karlilik_ozeti k
+                    LEFT JOIN mutabakat m ON m.siparis_id = k.id
+                    WHERE m.id IS NULL AND k.pazaryeri = %s
+                """, (pazaryeri,))
+            else:
+                cursor.execute("""
+                    INSERT IGNORE INTO mutabakat (siparis_id, pazaryeri, mutabakat_durumu, mutabakat_tarihi)
+                    SELECT k.id, k.pazaryeri, 'beklemede', NOW()
+                    FROM karlilik_ozeti k
+                    LEFT JOIN mutabakat m ON m.siparis_id = k.id
+                    WHERE m.id IS NULL
+                """)
+            conn.commit()
 
         select_sql = f"""
             SELECT id, siparis_no, barkod, pazaryeri,
                    COALESCE(kategori, ''), COALESCE(satis_tutari, 0),
                    COALESCE(kupon, 0), COALESCE(kampanya_indirimi, 0)
             FROM karlilik_ozeti WHERE {where}
+            ORDER BY id ASC
+            LIMIT {BATCH_LIMIT}
         """
         cursor.execute(select_sql, params)
         siparisler = cursor.fetchall()
 
+        son_id = siparisler[-1][0] if siparisler else after_id
         ozet = {
-            "toplam":   len(siparisler),
-            "eslesdi":  0,
-            "fark_var": 0,
+            "toplam":      len(siparisler),
+            "eslesdi":     0,
+            "fark_var":    0,
             "hata_sayisi": 0,
-            "hatalar":  [],
+            "hatalar":     [],
+            "son_id":      son_id,
+            "tamamlandi":  len(siparisler) < BATCH_LIMIT,
         }
 
         for siparis_id, siparis_no, barkod, pz, kategori, satis_tutari, kupon, kampanya_indirimi in siparisler:

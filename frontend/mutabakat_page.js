@@ -130,32 +130,50 @@ document.getElementById("filtBtn").addEventListener("click", () => loadMutabakat
 document.getElementById("mutabakatYapBtn").addEventListener("click", async () => {
   const btn = document.getElementById("mutabakatYapBtn");
   btn.disabled = true;
-  btn.textContent = "⏳ İşleniyor...";
+
+  let toplam = 0, eslesdi = 0, fark_var = 0, hata_sayisi = 0, hatalar = [];
+  let afterId = 0;
 
   try {
-    const r    = await fetch(`${API_BASE}/mutabakat/hesapla`, { method: "POST" });
-    const data = await r.json();
-    if (!r.ok) {
-      console.error("[MUTABAKAT HATA DETAYI]", data.detay || data.hata);
-      throw new Error(data.hata || `Sunucu hatası: ${r.status}`);
+    while (true) {
+      btn.textContent = `⏳ İşleniyor... (${toplam} sipariş)`;
+
+      const r = await fetch(`${API_BASE}/mutabakat/hesapla`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ after_id: afterId }),
+      });
+      const data = await r.json();
+
+      if (!r.ok) {
+        console.error("[MUTABAKAT HATA DETAYI]", data.detay || data.hata);
+        throw new Error(data.hata || `Sunucu hatası: ${r.status}`);
+      }
+
+      if (!data.basarili) throw new Error(data.hata);
+
+      const o = data.ozet;
+      toplam      += o.toplam      || 0;
+      eslesdi     += o.eslesdi     || 0;
+      fark_var    += o.fark_var    || 0;
+      hata_sayisi += o.hata_sayisi || 0;
+      hatalar      = hatalar.concat(o.hatalar || []);
+      afterId      = o.son_id;
+
+      if (o.tamamlandi) break;
     }
 
-    if (data.basarili) {
-      const o = data.ozet;
-      let mesaj = `Mutabakat tamamlandı!\n\nToplam  : ${o.toplam}\nEşleşti : ${o.eslesdi}\nFark Var: ${o.fark_var}`;
-      if (o.hata_sayisi > 0) {
-        mesaj += `\n\nHatalı  : ${o.hata_sayisi}`;
-        if (o.hatalar && o.hatalar.length) mesaj += `\n${o.hatalar.join("\n")}`;
-      }
-      alert(mesaj);
-      loadMutabakatOzet();
-      loadMutabakatListe(1);
-      loadDesiOzet();
-      loadDesiPazaryeri();
-      loadDesiDetay();
-    } else {
-      alert(`Hata: ${data.hata}`);
+    let mesaj = `Mutabakat tamamlandı!\n\nToplam  : ${toplam}\nEşleşti : ${eslesdi}\nFark Var: ${fark_var}`;
+    if (hata_sayisi > 0) {
+      mesaj += `\n\nHatalı  : ${hata_sayisi}`;
+      if (hatalar.length) mesaj += `\n${hatalar.join("\n")}`;
     }
+    alert(mesaj);
+    loadMutabakatOzet();
+    loadMutabakatListe(1);
+    loadDesiOzet();
+    loadDesiPazaryeri();
+    loadDesiDetay();
   } catch (e) {
     alert(`Bağlantı hatası: ${e.message}`);
   } finally {
