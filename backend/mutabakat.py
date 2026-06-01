@@ -196,17 +196,30 @@ def gerceklesen_degerler_hesapla(
         r["faturalanan_komisyon"] = Decimal(str(row[0]))
 
         cursor.execute("""
-            SELECT islem_tipi, COALESCE(SUM(lcw_kargo_hakedis), 0), COALESCE(MAX(desi), 0)
+            SELECT islem_tipi,
+                   COALESCE(SUM(lcw_kargo_hakedis), 0) AS hakedis,
+                   COUNT(CASE WHEN lcw_kargo_hakedis IS NOT NULL THEN 1 END) AS hakedis_var,
+                   COALESCE(MAX(desi), 0) AS fatura_desi
             FROM lcw_kargo_faturalari
             WHERE siparis_no = %s
             GROUP BY islem_tipi
         """, (pazaryeri_siparis_no,))
-        for islem_tipi, tutar, desi in cursor.fetchall():
-            if islem_tipi and "iade" in str(islem_tipi).lower():
-                r["faturalanan_iade_kargosu"] += Decimal(str(tutar))
+        for islem_tipi, hakedis, hakedis_var, fatura_desi in cursor.fetchall():
+            # lcw_kargo_hakedis varsa doğrudan kullan, yoksa desi tablosundan hesapla
+            if hakedis_var > 0 and Decimal(str(hakedis)) != Decimal("0"):
+                kargo_tutari = Decimal(str(hakedis))
             else:
-                r["faturalanan_satis_kargosu"] += Decimal(str(tutar))
-            r["faturalanan_desi"] = max(r["faturalanan_desi"], int(desi or 0))
+                cursor.execute("""
+                    SELECT COALESCE(aras_kargo, 0) FROM lcw_kargo_desi_fiyatlari
+                    WHERE desi >= %s ORDER BY desi ASC LIMIT 1
+                """, (float(fatura_desi),))
+                fiyat_row = cursor.fetchone()
+                kargo_tutari = Decimal(str(fiyat_row[0])) if fiyat_row else Decimal("0")
+            if islem_tipi and "iade" in str(islem_tipi).lower():
+                r["faturalanan_iade_kargosu"] += kargo_tutari
+            else:
+                r["faturalanan_satis_kargosu"] += kargo_tutari
+            r["faturalanan_desi"] = max(r["faturalanan_desi"], int(fatura_desi or 0))
 
     elif pz == "hepsiburada":
         cursor.execute("""
@@ -656,23 +669,30 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None, after_id: int = 0) -> dict:
             nos = [r[8] for r in by_pz["lcw"]]
             cursor.execute(f"SELECT siparis_no, COALESCE(SUM(lcw_komisyon_hakedis),0) FROM lcw_komisyon_faturalari WHERE siparis_no IN ({_ph(nos)}) GROUP BY siparis_no", nos)
             for sno, v in cursor.fetchall(): pz_komisyon[("lcw", sno)] = Decimal(str(v))
-            # lcw_kargo_hakedis NULL → desi bilgisiyle lcw_kargo_desi_fiyatlari'ndan hesapla
-            # LCW kargo fiyat tablosunda aras_kargo kullanılır
+            # LCW kargo: önce lcw_kargo_hakedis değerini dene, NULL ise desi tablosundan hesapla
+            # faturalanan_desi olarak lcw_kargo_faturalari.desi kullan
             cursor.execute(f"""
-                SELECT siparis_no, islem_tipi, COALESCE(MAX(desi),0)
+                SELECT siparis_no, islem_tipi,
+                       COALESCE(MAX(desi), 0)             AS fatura_desi,
+                       COALESCE(SUM(lcw_kargo_hakedis), 0) AS hakedis_tutari,
+                       COUNT(CASE WHEN lcw_kargo_hakedis IS NOT NULL THEN 1 END) AS hakedis_var
                 FROM lcw_kargo_faturalari
                 WHERE siparis_no IN ({_ph(nos)})
                 GROUP BY siparis_no, islem_tipi
             """, nos)
-            for sno, tip, desi_val in cursor.fetchall():
-                # Gerçek kargo tutarını desi fiyat tablosundan çek
-                cursor.execute("""
-                    SELECT COALESCE(aras_kargo, 0) FROM lcw_kargo_desi_fiyatlari
-                    WHERE desi >= %s ORDER BY desi ASC LIMIT 1
-                """, (float(desi_val),))
-                fiyat_row = cursor.fetchone()
-                kargo_tutari = Decimal(str(fiyat_row[0])) if fiyat_row else Decimal("0")
+            for sno, tip, desi_val, hakedis, hakedis_var in cursor.fetchall():
                 tip_str = str(tip).lower() if tip else ""
+                # Hakedis değeri doğrudan tabloda varsa kullan, yoksa desi tablosundan hesapla
+                if hakedis_var > 0 and Decimal(str(hakedis)) != Decimal("0"):
+                    kargo_tutari = Decimal(str(hakedis))
+                else:
+                    # Desi tablosundan hesapla: desi >= fatura_desi olan ilk satır
+                    cursor.execute("""
+                        SELECT COALESCE(aras_kargo, 0) FROM lcw_kargo_desi_fiyatlari
+                        WHERE desi >= %s ORDER BY desi ASC LIMIT 1
+                    """, (float(desi_val),))
+                    fiyat_row = cursor.fetchone()
+                    kargo_tutari = Decimal(str(fiyat_row[0])) if fiyat_row else Decimal("0")
                 if "iade" in tip_str:
                     pz_kargo[("lcw", sno)].append(("iade", kargo_tutari, int(desi_val)))
                 else:
@@ -680,27 +700,34 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None, after_id: int = 0) -> dict:
 
         if "hepsiburada" in by_pz:
             nos = [r[8] for r in by_pz["hepsiburada"]]
-            # Hepsiburada hakedis tablosunda kargo satırı yok (sadece 'Sipariş bazlı' var)
-            # Komisyon: amazon_ucretleri benzeri → hakedis tablosundan SUM tutar
-            # 'Sipariş tutarı' kayıt tipi: ödenen tutar (komisyon dahil net)
-            # Beklenen komisyon desi tablosundan hesaplanacak (zaten var), kargo = 0
+            # Hepsiburada komisyon: hakedis tablosundan kayit_sinifi='komisyon' satırları
             cursor.execute(f"""
-                SELECT siparis_no, COALESCE(SUM(CASE WHEN kayit_turu='Gelir' THEN tutar ELSE -tutar END), 0)
+                SELECT siparis_no, COALESCE(SUM(CASE WHEN kayit_turu='Gider' THEN tutar ELSE 0 END), 0) AS komisyon
                 FROM hepsiburada_hakedis
                 WHERE siparis_no IN ({_ph(nos)})
+                  AND LOWER(kayit_sinifi) LIKE '%komisyon%'
                 GROUP BY siparis_no
             """, nos)
-            # Bu değer gerçekleşen ödeme toplamı — şimdilik komisyon kaynağı olarak saklıyoruz
             for sno, v in cursor.fetchall():
-                # Hepsiburada'da komisyon ayrı faturalanmadığından 0 bırak,
-                # beklenen_komisyon hesabı desi tablosundan yapılıyor
-                pass
-            # Kargo: Hepsiburada kargo faturası ayrı gelmiyor → pz_kargo boş kalır,
-            # beklenen_kargo desi tablosundan zaten hesaplanıyor
+                if Decimal(str(v)) != Decimal("0"):
+                    pz_komisyon[("hepsiburada", sno)] = Decimal(str(v))
+            # Kargo: Hepsiburada hakedis tablosundan kargo satırlarını çek
+            # kayit_sinifi 'kargo' içeriyorsa faturalanan kargo tutarıdır
+            # Desi bilgisi bu tabloda yok — beklenen_kargo desi tablosundan hesaplanacak
+            cursor.execute(f"""
+                SELECT siparis_no, kayit_tipi, COALESCE(SUM(tutar), 0)
+                FROM hepsiburada_hakedis
+                WHERE siparis_no IN ({_ph(nos)})
+                  AND LOWER(kayit_sinifi) LIKE '%kargo%'
+                GROUP BY siparis_no, kayit_tipi
+            """, nos)
+            for sno, kayit_tipi, tutar in cursor.fetchall():
+                # Hepsiburada kargo desi bilgisi yok → desi=0, faturalanan_desi tahminle doldurulur
+                pz_kargo[("hepsiburada", sno)].append((kayit_tipi, Decimal(str(tutar)), 0))
 
         if "flo" in by_pz:
             nos = [r[8] for r in by_pz["flo"]]
-            # Flo: flo_fatura_detay'da sadece 'Komisyon' var, kargo satırı yok
+            # Flo: flo_fatura_detay'da komisyon ve kargo satırları ayrıştırılır
             cursor.execute(f"SELECT siparis_no, islem_tipi, COALESCE(SUM(miktar),0) FROM flo_fatura_detay WHERE siparis_no IN ({_ph(nos)}) GROUP BY siparis_no, islem_tipi", nos)
             for sno, tip, t in cursor.fetchall():
                 it = str(tip).lower() if tip else ""
@@ -708,8 +735,10 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None, after_id: int = 0) -> dict:
                     # Komisyon tutarını pz_komisyon'a ekle
                     pz_komisyon[("flo", sno)] = pz_komisyon.get(("flo", sno), Decimal("0")) + Decimal(str(t))
                 elif "kargo" in it:
+                    # Kargo satırı varsa ekle; desi bilgisi bu tabloda yok → 0
                     pz_kargo[("flo", sno)].append((tip, t, 0))
-            # Kargo: Flo kargo faturası bu tabloda yok → pz_kargo boş kalır
+            # Not: Flo kargo desi bilgisi flo_fatura_detay'da yok.
+            # faturalanan_desi, hesaplanan desi ile aynı kabul edilecek (döngüde atanır)
 
         if "amazon" in by_pz:
             nos = [r[8] for r in by_pz["amazon"]]
@@ -772,8 +801,14 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None, after_id: int = 0) -> dict:
 
                     faturalanan_desi = max(faturalanan_desi, desi_int)
 
-                # Tahmini desi ve beklenen kargo (cache)
+                # Tahmini desi ve beklenen kargo (cache) — hesaplanan_desi önce hesaplanmalı
                 hesaplanan_desi = desi_by_barkod.get(barkod, desi_by_kat.get(kategori or "", Decimal("0")))
+
+                # Hepsiburada ve Flo'da kargo faturasında desi yok:
+                # faturalanan_desi 0 ise tahmin edilen desi ile doldur (karşılaştırma anlamlı olsun)
+                if faturalanan_desi == 0 and pz_lower in ("hepsiburada", "flo"):
+                    faturalanan_desi = int(hesaplanan_desi) if hesaplanan_desi > 0 else 0
+
                 beklenen_kargo  = Decimal("0")
                 for kd, kf in kargo_desi_cache.get(pz_lower, []):
                     if kd >= float(hesaplanan_desi): beklenen_kargo = kf; break
