@@ -804,9 +804,10 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None, after_id: int = 0) -> dict:
                 # Tahmini desi ve beklenen kargo (cache) — hesaplanan_desi önce hesaplanmalı
                 hesaplanan_desi = desi_by_barkod.get(barkod, desi_by_kat.get(kategori or "", Decimal("0")))
 
-                # Hepsiburada ve Flo'da kargo faturasında desi yok:
+                # Kargo faturasında desi bilgisi olmayan pazaryerleri:
                 # faturalanan_desi 0 ise tahmin edilen desi ile doldur (karşılaştırma anlamlı olsun)
-                if faturalanan_desi == 0 and pz_lower in ("hepsiburada", "flo"):
+                # LCW: kargo faturası yoksa 0 gelir; Amazon: desi bilgisi hiç gelmiyor
+                if faturalanan_desi == 0 and pz_lower in ("hepsiburada", "flo", "lcw", "amazon"):
                     faturalanan_desi = int(hesaplanan_desi) if hesaplanan_desi > 0 else 0
 
                 beklenen_kargo  = Decimal("0")
@@ -823,10 +824,13 @@ def toplu_mutabakat_hesapla(pazaryeri: str = None, after_id: int = 0) -> dict:
                 fark_var = abs(odeme_farki) >= ESLESME_ESIGI
                 durum    = ReconciliationStatus.ESLESDI if not fark_var else ReconciliationStatus.FARK_VAR
 
+                # satis_kargosu: faturalanan kargo varsa onu yaz, yoksa desi tablosundan tahmin edilen
+                # (LCW/Amazon/HB/Flo'da fatura gelmediyse beklenen_kargo 0'dan farklı olacak)
+                kargo_gosterim = faturalanan_satis_kargosu if faturalanan_satis_kargosu > 0 else beklenen_kargo
                 karlilik_rows.append((
                     float(faturalanan_desi), float(hesaplanan_desi),
                     float(beklenen_komisyon), float(faturalanan_komisyon),
-                    float(faturalanan_satis_kargosu),
+                    float(kargo_gosterim),
                     durum.value, siparis_id,
                 ))
                 mutabakat_rows.append((
