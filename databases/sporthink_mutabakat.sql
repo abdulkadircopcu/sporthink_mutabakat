@@ -699,6 +699,33 @@ CREATE TABLE IF NOT EXISTS `komisyon_oranlari` (
   KEY `idx_kom_tarih` (`gecerlilik_tarihi`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_turkish_ci COMMENT='Pazaryeri bazli kategori komisyon oranlari';
 
+--
+-- Tablo döküm verisi `komisyon_oranlari`
+--
+
+INSERT INTO `komisyon_oranlari` (`pazaryeri_kod`, `kategori`, `komisyon_orani`, `gecerlilik_tarihi`) VALUES
+('trendyol',    'Giyim',    10.00, '2026-01-01'),
+('trendyol',    'Ayakkabi', 10.00, '2026-01-01'),
+('trendyol',    'Aksesuar', 10.00, '2026-01-01'),
+('hepsiburada', 'Giyim',    12.00, '2026-01-01'),
+('hepsiburada', 'Ayakkabi', 12.00, '2026-01-01'),
+('hepsiburada', 'Aksesuar', 12.00, '2026-01-01'),
+('lcw',         'Giyim',    11.00, '2026-01-01'),
+('lcw',         'Ayakkabi', 11.00, '2026-01-01'),
+('lcw',         'Aksesuar', 11.00, '2026-01-01'),
+('n11',         'Giyim',    12.00, '2026-01-01'),
+('n11',         'Ayakkabi', 12.00, '2026-01-01'),
+('n11',         'Aksesuar', 12.00, '2026-01-01'),
+('pazarama',    'Giyim',    13.00, '2026-01-01'),
+('pazarama',    'Ayakkabi', 13.00, '2026-01-01'),
+('pazarama',    'Aksesuar', 13.00, '2026-01-01'),
+('flo',         'Giyim',    10.00, '2026-01-01'),
+('flo',         'Ayakkabi', 10.00, '2026-01-01'),
+('flo',         'Aksesuar', 10.00, '2026-01-01'),
+('amazon',      'Giyim',    11.00, '2026-01-01'),
+('amazon',      'Ayakkabi', 11.00, '2026-01-01'),
+('amazon',      'Aksesuar', 11.00, '2026-01-01');
+
 -- --------------------------------------------------------
 
 --
