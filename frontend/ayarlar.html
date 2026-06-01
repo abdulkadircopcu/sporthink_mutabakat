@@ -40,6 +40,15 @@
     .aktif-evet { background:var(--green); }
     .aktif-hayir{ background:var(--red); }
     .rol-select { background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:4px 8px; font-size:12px; font-family:inherit; cursor:pointer; }
+
+    /* ── Yeni Ekle / Sil ── */
+    .btn-add    { background:var(--accent); border:none; color:#fff; border-radius:6px; padding:6px 14px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; transition:filter 0.15s; }
+    .btn-add:hover { filter:brightness(1.15); }
+    .btn-delete { background:none; border:1px solid var(--border); color:var(--red); border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer; font-family:inherit; transition:all 0.15s; }
+    .btn-delete:hover { border-color:var(--red); background:rgba(248,81,73,0.08); }
+    .yeni-row td { background:rgba(88,166,255,0.05); }
+    .yeni-row input { background:var(--bg3); border:1px solid var(--accent); color:var(--text); border-radius:5px; padding:4px 7px; font-size:12px; font-family:inherit; width:100%; box-sizing:border-box; }
+    .yeni-row input:focus { outline:none; }
   </style>
 </head>
 <body>
@@ -64,6 +73,7 @@
     <div class="tab-bar">
       <button class="tab-btn active" data-tab="kargo">Kargo Desi Fiyatları</button>
       <button class="tab-btn"        data-tab="kategori">Kategori Desi Listesi</button>
+      <button class="tab-btn"        data-tab="komisyon">Komisyon Oranları</button>
       <button class="tab-btn"        data-tab="kullanicilar" id="tabKullanicilar" style="display:none">Kullanıcılar</button>
     </div>
 
@@ -97,6 +107,7 @@
       <div class="card">
         <div class="table-header">
           <h2 class="table-title">Kategori Desi Listesi</h2>
+          <button class="btn-add" onclick="katYeniBaslat()">+ Yeni Ekle</button>
         </div>
         <div class="table-wrap">
           <table class="data-table">
@@ -112,6 +123,41 @@
             </thead>
             <tbody id="kategoriBody">
               <tr><td colspan="6" class="table-empty">Yükleniyor...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Panel: Komisyon Oranları ── -->
+    <div class="tab-panel" id="panel-komisyon">
+      <div class="card">
+        <div class="table-header">
+          <h2 class="table-title">Komisyon Oranları</h2>
+          <button class="btn-add" onclick="komYeniBaslat()">+ Yeni Ekle</button>
+        </div>
+        <div class="pz-selector" id="komPzSelector">
+          <button class="pz-btn active" data-pz="trendyol">Trendyol</button>
+          <button class="pz-btn" data-pz="hepsiburada">Hepsiburada</button>
+          <button class="pz-btn" data-pz="lcw">LCW</button>
+          <button class="pz-btn" data-pz="n11">N11</button>
+          <button class="pz-btn" data-pz="pazarama">Pazarama</button>
+          <button class="pz-btn" data-pz="flo">Flo</button>
+          <button class="pz-btn" data-pz="amazon">Amazon</button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Kategori</th>
+                <th>Alt Kategori</th>
+                <th style="text-align:right">Komisyon (%)</th>
+                <th style="text-align:right">Geçerlilik Tarihi</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="komisyonBody">
+              <tr><td colspan="5" class="table-empty">Yükleniyor...</td></tr>
             </tbody>
           </table>
         </div>

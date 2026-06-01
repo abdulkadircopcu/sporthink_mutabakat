@@ -168,6 +168,154 @@ def kategori_desi_guncelle(row_id):
 # ── Kullanıcı Yönetimi (sadece admin) ────────────────────────
 
 
+@ayarlar_bp.route("/ayarlar/kategori-desi", methods=["POST"])
+def kategori_desi_ekle():
+    body = request.get_json(silent=True) or {}
+    ana_kategori = (body.get("ana_kategori") or "").strip()
+    alt_kategori = (body.get("alt_kategori") or "").strip() or None
+    cinsiyet     = (body.get("cinsiyet")     or "").strip() or None
+    tahmini_desi = body.get("tahmini_desi")
+    barkod       = (body.get("barkod")       or "").strip() or None
+
+    if not ana_kategori:
+        return jsonify({"hata": "Ana kategori zorunludur"}), 400
+    if tahmini_desi is None:
+        return jsonify({"hata": "Tahmini desi zorunludur"}), 400
+    try:
+        tahmini_desi = int(tahmini_desi)
+    except (TypeError, ValueError):
+        return jsonify({"hata": "Geçersiz tahmini desi değeri"}), 400
+
+    conn = get_conn()
+    cur  = conn.cursor()
+    cur.execute("""
+        INSERT INTO kategori_desi_listesi (ana_kategori, alt_kategori, cinsiyet, tahmini_desi, barkod)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (ana_kategori, alt_kategori, cinsiyet, tahmini_desi, barkod))
+    conn.commit()
+    yeni_id = cur.lastrowid
+    cur.close(); conn.close()
+    return jsonify({"basarili": True, "id": yeni_id}), 201
+
+
+@ayarlar_bp.route("/ayarlar/kategori-desi/<int:row_id>", methods=["DELETE"])
+def kategori_desi_sil(row_id):
+    conn = get_conn()
+    cur  = conn.cursor()
+    cur.execute("DELETE FROM kategori_desi_listesi WHERE id = %s", (row_id,))
+    conn.commit()
+    cur.close(); conn.close()
+    return jsonify({"basarili": True})
+
+
+# ── Komisyon Oranları ─────────────────────────────────────────
+
+GECERLI_PAZARYERLER = {"trendyol", "hepsiburada", "lcw", "n11", "pazarama", "flo", "amazon"}
+
+
+@ayarlar_bp.route("/ayarlar/komisyon-oranlari", methods=["GET"])
+def komisyon_oranlari_liste():
+    pazaryeri = request.args.get("pazaryeri", "").lower()
+    if pazaryeri and pazaryeri not in GECERLI_PAZARYERLER:
+        return jsonify({"hata": "Geçersiz pazaryeri"}), 400
+
+    conn = get_conn()
+    cur  = conn.cursor(dictionary=True)
+    if pazaryeri:
+        cur.execute("""
+            SELECT id, pazaryeri_kod, kategori, alt_kategori, komisyon_orani, gecerlilik_tarihi
+            FROM komisyon_oranlari
+            WHERE pazaryeri_kod = %s
+            ORDER BY kategori, alt_kategori, gecerlilik_tarihi DESC
+        """, (pazaryeri,))
+    else:
+        cur.execute("""
+            SELECT id, pazaryeri_kod, kategori, alt_kategori, komisyon_orani, gecerlilik_tarihi
+            FROM komisyon_oranlari
+            ORDER BY pazaryeri_kod, kategori, alt_kategori, gecerlilik_tarihi DESC
+        """)
+    rows = cur.fetchall()
+    cur.close(); conn.close()
+    for row in rows:
+        if row.get("komisyon_orani") is not None:
+            row["komisyon_orani"] = float(row["komisyon_orani"])
+        if row.get("gecerlilik_tarihi") is not None:
+            row["gecerlilik_tarihi"] = str(row["gecerlilik_tarihi"])
+    return jsonify(rows)
+
+
+@ayarlar_bp.route("/ayarlar/komisyon-oranlari", methods=["POST"])
+def komisyon_oranlari_ekle():
+    body = request.get_json(silent=True) or {}
+    pazaryeri_kod     = (body.get("pazaryeri_kod") or "").lower()
+    kategori          = (body.get("kategori")       or "").strip()
+    alt_kategori      = (body.get("alt_kategori")   or "").strip() or None
+    komisyon_orani    = body.get("komisyon_orani")
+    gecerlilik_tarihi = body.get("gecerlilik_tarihi") or None
+
+    if pazaryeri_kod not in GECERLI_PAZARYERLER:
+        return jsonify({"hata": "Geçersiz pazaryeri"}), 400
+    if not kategori:
+        return jsonify({"hata": "Kategori zorunludur"}), 400
+    if komisyon_orani is None:
+        return jsonify({"hata": "Komisyon oranı zorunludur"}), 400
+    try:
+        komisyon_orani = float(komisyon_orani)
+    except (TypeError, ValueError):
+        return jsonify({"hata": "Geçersiz komisyon oranı"}), 400
+
+    conn = get_conn()
+    cur  = conn.cursor()
+    cur.execute("""
+        INSERT INTO komisyon_oranlari (pazaryeri_kod, kategori, alt_kategori, komisyon_orani, gecerlilik_tarihi)
+        VALUES (%s, %s, %s, %s, COALESCE(%s, CURDATE()))
+    """, (pazaryeri_kod, kategori, alt_kategori, komisyon_orani, gecerlilik_tarihi))
+    conn.commit()
+    yeni_id = cur.lastrowid
+    cur.close(); conn.close()
+    return jsonify({"basarili": True, "id": yeni_id}), 201
+
+
+@ayarlar_bp.route("/ayarlar/komisyon-oranlari/<int:row_id>", methods=["PUT"])
+def komisyon_oranlari_guncelle(row_id):
+    body = request.get_json(silent=True) or {}
+    izin = {"kategori", "alt_kategori", "komisyon_orani", "gecerlilik_tarihi"}
+    guncelle = {k: v for k, v in body.items() if k in izin}
+
+    if "komisyon_orani" in guncelle:
+        try:
+            guncelle["komisyon_orani"] = float(guncelle["komisyon_orani"])
+        except (TypeError, ValueError):
+            return jsonify({"hata": "Geçersiz komisyon oranı"}), 400
+
+    if not guncelle:
+        return jsonify({"hata": "Güncellenecek alan yok"}), 400
+
+    conn = get_conn()
+    cur  = conn.cursor()
+    set_clause = ", ".join(f"`{k}` = %s" for k in guncelle)
+    cur.execute(
+        f"UPDATE komisyon_oranlari SET {set_clause} WHERE id = %s",
+        list(guncelle.values()) + [row_id]
+    )
+    conn.commit()
+    cur.close(); conn.close()
+    return jsonify({"basarili": True})
+
+
+@ayarlar_bp.route("/ayarlar/komisyon-oranlari/<int:row_id>", methods=["DELETE"])
+def komisyon_oranlari_sil(row_id):
+    conn = get_conn()
+    cur  = conn.cursor()
+    cur.execute("DELETE FROM komisyon_oranlari WHERE id = %s", (row_id,))
+    conn.commit()
+    cur.close(); conn.close()
+    return jsonify({"basarili": True})
+
+
+# ── Kullanıcı Yönetimi (sadece admin) ────────────────────────
+
+
 @ayarlar_bp.route("/ayarlar/kullanicilar", methods=["GET"])
 def kullanicilar_liste():
     if not _auth("admin"):
